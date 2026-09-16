@@ -20,30 +20,22 @@ public class UserServices : IUserServices
 
     public async Task<UserResponse?> Register(UserRequest user)
     {
-        // Verificar que el correo no esté registrado
         var emailExists = await _db.Usuarios
             .AnyAsync(u => u.Correo == user.Correo);
 
         if (emailExists)
             return null;
 
-        // Crear entidad a partir del DTO
         var entity = _mapper.Map<Usuario>(user);
 
-        // Configurar datos iniciales del usuario
         entity.Estado = EstadoUsuario.Activo;
         entity.FechaCreacion = DateTime.UtcNow;
 
-        /*
-         * La contraseña será cifrada con BCrypt
-         * en la siguiente subtarea.
-         */
-        entity.PasswordHash = user.Password;
+        entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
         await _db.Usuarios.AddAsync(entity);
         await _db.SaveChangesAsync();
 
-        // Cargar el rol para construir la respuesta
         await _db.Entry(entity)
             .Reference(u => u.Rol)
             .LoadAsync();
