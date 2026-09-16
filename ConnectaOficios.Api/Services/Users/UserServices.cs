@@ -68,6 +68,11 @@ public class UserServices : IUserServices
             return null;
         }
 
+        if (usuario.Estado != EstadoUsuario.Activo)
+        {
+            return null;
+        }
+
         var passwordValid = BCrypt.Net.BCrypt.Verify(
             login.Password,
             usuario.PasswordHash
