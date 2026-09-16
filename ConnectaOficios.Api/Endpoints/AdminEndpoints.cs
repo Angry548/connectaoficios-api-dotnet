@@ -14,9 +14,18 @@ public static class AdminEndpoints
 
         // GET: /api/admin/users
         group.MapGet("/users", async (
-            IUserServices userServices) =>
+            IUserServices userServices,
+            string? nombre,
+            string? correo,
+            int? rolId,
+            int? estado) =>
         {
-            var usuarios = await userServices.GetAll();
+            var usuarios = await userServices.GetAll(
+                nombre,
+                correo,
+                rolId,
+                estado
+            );
 
             return Results.Ok(usuarios);
         })

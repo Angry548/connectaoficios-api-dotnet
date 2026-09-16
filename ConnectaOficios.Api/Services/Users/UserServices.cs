@@ -96,11 +96,46 @@ public class UserServices : IUserServices
         };
     }
 
-    public async Task<IEnumerable<UserResponse>> GetAll()
+    public async Task<IEnumerable<UserResponse>> GetAll(
+    string? nombre = null,
+    string? correo = null,
+    int? rolId = null,
+    int? estado = null)
     {
-        var usuarios = await _db.Usuarios
+        var query = _db.Usuarios
             .AsNoTracking()
             .Include(u => u.Rol)
+            .AsQueryable();
+
+        // Filtrar por nombre
+        if (!string.IsNullOrWhiteSpace(nombre))
+        {
+            query = query.Where(u =>
+                u.Nombre.Contains(nombre));
+        }
+
+        // Filtrar por correo
+        if (!string.IsNullOrWhiteSpace(correo))
+        {
+            query = query.Where(u =>
+                u.Correo.Contains(correo));
+        }
+
+        // Filtrar por rol
+        if (rolId.HasValue)
+        {
+            query = query.Where(u =>
+                u.RolId == rolId.Value);
+        }
+
+        // Filtrar por estado
+        if (estado.HasValue)
+        {
+            query = query.Where(u =>
+                (int)u.Estado == estado.Value);
+        }
+
+        var usuarios = await query
             .OrderBy(u => u.Nombre)
             .ToListAsync();
 
