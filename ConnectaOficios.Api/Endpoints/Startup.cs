@@ -5,5 +5,6 @@ public static class Startup
     public static void AddEndpoints(this IEndpointRouteBuilder routes)
     {
         routes.AddUserEndpoints();
+        routes.AddAdminEndpoints();
     }
 }

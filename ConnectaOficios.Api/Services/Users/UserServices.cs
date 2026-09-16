@@ -95,4 +95,29 @@ public class UserServices : IUserServices
             Usuario = _mapper.Map<UserResponse>(usuario)
         };
     }
+
+    public async Task<IEnumerable<UserResponse>> GetAll()
+    {
+        var usuarios = await _db.Usuarios
+            .AsNoTracking()
+            .Include(u => u.Rol)
+            .OrderBy(u => u.Nombre)
+            .ToListAsync();
+
+        return _mapper.Map<IEnumerable<UserResponse>>(usuarios);
+    }
+    public async Task<UserResponse?> GetById(int id)
+    {
+        var usuario = await _db.Usuarios
+            .AsNoTracking()
+            .Include(u => u.Rol)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (usuario == null)
+        {
+            return null;
+        }
+
+        return _mapper.Map<UserResponse>(usuario);
+    }
 }

@@ -1,13 +1,44 @@
-﻿namespace ConnectaOficios.Api.Endpoints;
+﻿using ConnectaOficios.Api.Services.Users;
+
+namespace ConnectaOficios.Api.Endpoints;
 
 public static class AdminEndpoints
 {
-    public static RouteGroupBuilder MapAdminGroup(
+    public static void AddAdminEndpoints(
         this IEndpointRouteBuilder routes)
     {
-        return routes
+        var group = routes
             .MapGroup("/api/admin")
             .WithTags("Administration")
             .RequireAuthorization("Administrador");
+
+        // GET: /api/admin/users
+        group.MapGet("/users", async (
+            IUserServices userServices) =>
+        {
+            var usuarios = await userServices.GetAll();
+
+            return Results.Ok(usuarios);
+        })
+        .WithName("GetAllUsers");
+
+        // GET: /api/admin/users/{id}
+        group.MapGet("/users/{id:int}", async (
+            int id,
+            IUserServices userServices) =>
+        {
+            var usuario = await userServices.GetById(id);
+
+            if (usuario == null)
+            {
+                return Results.NotFound(new
+                {
+                    message = "Usuario no encontrado."
+                });
+            }
+
+            return Results.Ok(usuario);
+        })
+        .WithName("GetUserById");
     }
 }
