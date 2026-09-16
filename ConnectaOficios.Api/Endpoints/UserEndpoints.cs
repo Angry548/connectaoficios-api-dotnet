@@ -11,9 +11,10 @@ public static class UserEndpoints
             .MapGroup("/api/users")
             .WithTags("Users");
 
+        // POST: /api/users/register
         group.MapPost("/register", async (
-    UserRequest user,
-    IUserServices userServices) =>
+            UserRequest user,
+            IUserServices userServices) =>
         {
             if (user == null)
             {
@@ -47,6 +48,22 @@ public static class UserEndpoints
                 result
             );
         })
-.WithName("RegisterUser");
+        .WithName("RegisterUser");
+
+        // POST: /api/users/login
+        group.MapPost("/login", async (
+            LoginRequest login,
+            IUserServices userServices) =>
+        {
+            var result = await userServices.Login(login);
+
+            if (result == null)
+            {
+                return Results.Unauthorized();
+            }
+
+            return Results.Ok(result);
+        })
+        .WithName("LoginUser");
     }
 }
