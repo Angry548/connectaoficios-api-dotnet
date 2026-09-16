@@ -95,3 +95,4 @@ namespace ConnectaOficios.Domain.Migrations
         }
     }
 }
+

@@ -151,3 +151,4 @@ namespace ConnectaOficios.Domain.Migrations
         }
     }
 }
+
