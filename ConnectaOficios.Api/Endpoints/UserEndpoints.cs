@@ -11,16 +11,24 @@ public static class UserEndpoints
             .MapGroup("/api/users")
             .WithTags("Users");
 
-        // POST: /api/users/register
         group.MapPost("/register", async (
-            UserRequest user,
-            IUserServices userServices) =>
+    UserRequest user,
+    IUserServices userServices) =>
         {
             if (user == null)
             {
                 return Results.BadRequest(new
                 {
                     message = "Los datos del usuario son obligatorios."
+                });
+            }
+
+            // Validar rol permitido para el registro público
+            if (user.RolId != 1 && user.RolId != 2)
+            {
+                return Results.BadRequest(new
+                {
+                    message = "Debe seleccionar el rol Cliente o Trabajador."
                 });
             }
 
@@ -39,6 +47,6 @@ public static class UserEndpoints
                 result
             );
         })
-        .WithName("RegisterUser");
+.WithName("RegisterUser");
     }
 }

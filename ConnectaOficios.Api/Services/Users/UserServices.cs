@@ -20,6 +20,11 @@ public class UserServices : IUserServices
 
     public async Task<UserResponse?> Register(UserRequest user)
     {
+        if (user.RolId != 1 && user.RolId != 2)
+        {
+            return null;
+        }
+
         var emailExists = await _db.Usuarios
             .AnyAsync(u => u.Correo == user.Correo);
 
