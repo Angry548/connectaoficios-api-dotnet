@@ -1,6 +1,7 @@
 using ConnectaOficios.Domain.Data;
 using Microsoft.EntityFrameworkCore;
 using ConnectaOficios.Api.Mappings;
+using ConnectaOficios.Api.Services.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,9 @@ builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddProfile<MappingProfile>();
 });
+
+// Servicios
+builder.Services.AddScoped<IUserServices, UserServices>();
 
 // Base de datos SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
