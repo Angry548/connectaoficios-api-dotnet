@@ -2,6 +2,7 @@ using ConnectaOficios.Domain.Data;
 using Microsoft.EntityFrameworkCore;
 using ConnectaOficios.Api.Mappings;
 using ConnectaOficios.Api.Services.Users;
+using ConnectaOficios.Api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,5 +43,8 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Endpoints de la API
+app.AddEndpoints();
 
 app.Run();
