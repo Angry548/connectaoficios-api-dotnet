@@ -1,6 +1,7 @@
 using ConnectaOficios.Api.Endpoints;
 using ConnectaOficios.Api.Mappings;
 using ConnectaOficios.Api.Services.Users;
+using ConnectaOficios.Api.Security;
 using ConnectaOficios.Domain.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ builder.Services.AddAutoMapper(cfg =>
 
 // Servicios
 builder.Services.AddScoped<IUserServices, UserServices>();
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 // Base de datos SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
