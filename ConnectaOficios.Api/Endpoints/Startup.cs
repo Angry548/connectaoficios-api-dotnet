@@ -6,5 +6,6 @@ public static class Startup
     {
         routes.AddUserEndpoints();
         routes.AddAdminEndpoints();
+        routes.AddAdminAccountEndpoints();
     }
 }
