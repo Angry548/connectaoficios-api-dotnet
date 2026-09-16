@@ -72,7 +72,24 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+// Autorización basada en roles
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Cliente", policy =>
+        policy.RequireRole("Cliente"));
+
+    options.AddPolicy("Trabajador", policy =>
+        policy.RequireRole("Trabajador"));
+
+    options.AddPolicy("Administrador", policy =>
+        policy.RequireRole(
+            "Administrador",
+            "AdministradorPrincipal"
+        ));
+
+    options.AddPolicy("AdministradorPrincipal", policy =>
+        policy.RequireRole("AdministradorPrincipal"));
+});
 
 var app = builder.Build();
 
