@@ -1,4 +1,5 @@
-﻿using ConnectaOficios.Api.Services.Users;
+﻿using ConnectaOficios.Api.DTOs.Users;
+using ConnectaOficios.Api.Services.Users;
 
 namespace ConnectaOficios.Api.Endpoints;
 
@@ -49,5 +50,36 @@ public static class AdminEndpoints
             return Results.Ok(usuario);
         })
         .WithName("GetUserById");
+
+        // PATCH: /api/admin/users/{id}/status
+        group.MapPatch("/users/{id:int}/status", async (
+            int id,
+            UserStatusRequest request,
+            IUserServices userServices) =>
+        {
+            if (request.Estado != 1 && request.Estado != 2)
+            {
+                return Results.BadRequest(new
+                {
+                    message = "El estado debe ser 1 (Activo) o 2 (Inactivo)."
+                });
+            }
+
+            var usuario = await userServices.ChangeStatus(
+                id,
+                request.Estado
+            );
+
+            if (usuario == null)
+            {
+                return Results.NotFound(new
+                {
+                    message = "Usuario no encontrado."
+                });
+            }
+
+            return Results.Ok(usuario);
+        })
+        .WithName("ChangeUserStatus");
     }
 }

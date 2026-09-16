@@ -16,4 +16,6 @@ public interface IUserServices
     );
 
     Task<UserResponse?> GetById(int id);
+
+    Task<UserResponse?> ChangeStatus(int id, int estado);
 }

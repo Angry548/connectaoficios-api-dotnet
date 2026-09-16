@@ -155,4 +155,31 @@ public class UserServices : IUserServices
 
         return _mapper.Map<UserResponse>(usuario);
     }
+    public async Task<UserResponse?> ChangeStatus(
+    int id,
+    int estado)
+    {
+        var usuario = await _db.Usuarios
+            .Include(u => u.Rol)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (usuario == null)
+        {
+            return null;
+        }
+
+        // Validar estados permitidos
+        if (estado != (int)EstadoUsuario.Activo &&
+            estado != (int)EstadoUsuario.Inactivo)
+        {
+            return null;
+        }
+
+        usuario.Estado = (EstadoUsuario)estado;
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return _mapper.Map<UserResponse>(usuario);
+    }
 }
