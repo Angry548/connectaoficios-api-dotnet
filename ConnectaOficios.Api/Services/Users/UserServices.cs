@@ -426,4 +426,110 @@ public class UserServices : IUserServices
             Success = true
         };
     }
+    public async Task<UserUpdateResult> UpdateCurrentUser(
+    int userId,
+    UserUpdateRequest request)
+    {
+        var usuario = await _db.Usuarios
+            .Include(u => u.Rol)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (usuario == null)
+        {
+            return new UserUpdateResult
+            {
+                Success = false,
+                Error = "USER_NOT_FOUND"
+            };
+        }
+
+        if (usuario.Estado != EstadoUsuario.Activo)
+        {
+            return new UserUpdateResult
+            {
+                Success = false,
+                Error = "USER_INACTIVE"
+            };
+        }
+
+        var hasChanges =
+            request.Nombre != null ||
+            request.Correo != null ||
+            request.Telefono != null;
+
+        if (!hasChanges)
+        {
+            return new UserUpdateResult
+            {
+                Success = false,
+                Error = "NO_FIELDS"
+            };
+        }
+
+        if (request.Nombre != null)
+        {
+            var nombre = request.Nombre.Trim();
+
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                return new UserUpdateResult
+                {
+                    Success = false,
+                    Error = "INVALID_NAME"
+                };
+            }
+
+            usuario.Nombre = nombre;
+        }
+
+        if (request.Correo != null)
+        {
+            var correo = request.Correo.Trim();
+
+            if (string.IsNullOrWhiteSpace(correo))
+            {
+                return new UserUpdateResult
+                {
+                    Success = false,
+                    Error = "INVALID_EMAIL"
+                };
+            }
+
+            var correoEnUso = await _db.Usuarios
+                .AnyAsync(u =>
+                    u.Correo == correo &&
+                    u.Id != userId);
+
+            if (correoEnUso)
+            {
+                return new UserUpdateResult
+                {
+                    Success = false,
+                    Error = "EMAIL_EXISTS"
+                };
+            }
+
+            usuario.Correo = correo;
+        }
+
+        if (request.Telefono != null)
+        {
+            var telefono = request.Telefono.Trim();
+
+            usuario.Telefono =
+                string.IsNullOrWhiteSpace(telefono)
+                    ? null
+                    : telefono;
+        }
+
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return new UserUpdateResult
+        {
+            Success = true,
+            User = _mapper.Map<UserResponse>(usuario)
+        };
+    }
 }

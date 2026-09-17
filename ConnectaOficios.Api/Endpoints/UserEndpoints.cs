@@ -188,6 +188,80 @@ public static class UserEndpoints
             });
         })
 .WithName("ResetPassword");
+
+        group.MapPut("/me", async (
+    UserUpdateRequest request,
+    IUserServices userServices,
+    ClaimsPrincipal user) =>
+        {
+            var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await userServices.UpdateCurrentUser(
+                userId,
+                request
+            );
+
+            if (!result.Success)
+            {
+                return result.Error switch
+                {
+                    "USER_NOT_FOUND" =>
+                        Results.NotFound(new
+                        {
+                            message = "Usuario no encontrado."
+                        }),
+
+                    "USER_INACTIVE" =>
+                        Results.BadRequest(new
+                        {
+                            message = "La cuenta del usuario se encuentra inactiva."
+                        }),
+
+                    "NO_FIELDS" =>
+                        Results.BadRequest(new
+                        {
+                            message = "Debe proporcionar al menos un campo para actualizar."
+                        }),
+
+                    "INVALID_NAME" =>
+                        Results.BadRequest(new
+                        {
+                            message = "El nombre no puede estar vacío."
+                        }),
+
+                    "INVALID_EMAIL" =>
+                        Results.BadRequest(new
+                        {
+                            message = "El correo no puede estar vacío."
+                        }),
+
+                    "EMAIL_EXISTS" =>
+                        Results.Conflict(new
+                        {
+                            message = "El correo indicado ya está registrado."
+                        }),
+
+                    _ =>
+                        Results.BadRequest(new
+                        {
+                            message = "No fue posible actualizar los datos del usuario."
+                        })
+                };
+            }
+
+            return Results.Ok(new
+            {
+                message = "Datos personales actualizados correctamente.",
+                user = result.User
+            });
+        })
+.RequireAuthorization(policy =>
+    policy.RequireRole("Cliente", "Trabajador"));
     }
 
 }

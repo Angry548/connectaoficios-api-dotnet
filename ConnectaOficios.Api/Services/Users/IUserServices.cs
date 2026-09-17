@@ -22,6 +22,11 @@ public interface IUserServices
         int estado
     );
 
+    Task<UserUpdateResult> UpdateCurrentUser(
+    int userId,
+    UserUpdateRequest request
+    );
+
     Task<PasswordChangeResult> ChangePassword(
     int userId,
     ChangePasswordRequest request
