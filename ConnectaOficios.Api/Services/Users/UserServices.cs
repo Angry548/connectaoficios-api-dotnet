@@ -188,4 +188,71 @@ public class UserServices : IUserServices
 
         return _mapper.Map<UserResponse>(usuario);
     }
+    public async Task<PasswordChangeResult> ChangePassword(
+    int userId,
+    ChangePasswordRequest request)
+    {
+        var usuario = await _db.Usuarios
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (usuario == null)
+        {
+            return new PasswordChangeResult
+            {
+                Success = false,
+                Error = "USER_NOT_FOUND"
+            };
+        }
+
+        if (usuario.Estado != EstadoUsuario.Activo)
+        {
+            return new PasswordChangeResult
+            {
+                Success = false,
+                Error = "USER_INACTIVE"
+            };
+        }
+
+        var currentPasswordIsValid =
+            BCrypt.Net.BCrypt.Verify(
+                request.CurrentPassword,
+                usuario.PasswordHash
+            );
+
+        if (!currentPasswordIsValid)
+        {
+            return new PasswordChangeResult
+            {
+                Success = false,
+                Error = "INVALID_CURRENT_PASSWORD"
+            };
+        }
+
+        var samePassword = BCrypt.Net.BCrypt.Verify(
+            request.NewPassword,
+            usuario.PasswordHash
+        );
+
+        if (samePassword)
+        {
+            return new PasswordChangeResult
+            {
+                Success = false,
+                Error = "SAME_PASSWORD"
+            };
+        }
+
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+            request.NewPassword
+        );
+
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return new PasswordChangeResult
+        {
+            Success = true
+        };
+    }
 }

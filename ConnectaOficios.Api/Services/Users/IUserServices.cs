@@ -17,5 +17,13 @@ public interface IUserServices
 
     Task<UserResponse?> GetById(int id);
 
-    Task<UserResponse?> ChangeStatus(int id, int estado);
+    Task<UserResponse?> ChangeStatus(
+        int id,
+        int estado
+    );
+
+    Task<PasswordChangeResult> ChangePassword(
+        int userId,
+        ChangePasswordRequest request
+    );
 }

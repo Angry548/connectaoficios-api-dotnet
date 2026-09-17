@@ -111,25 +111,72 @@ public class AdminServices : IAdminServices
             };
         }
 
-        var normalizedEmail = admin.Correo.Trim();
-
-        var emailExists = await _db.Usuarios
-            .AnyAsync(u =>
-                u.Correo == normalizedEmail &&
-                u.Id != id);
-
-        if (emailExists)
+        // Debe enviarse al menos un campo para actualizar.
+        if (admin.Nombre == null &&
+            admin.Correo == null &&
+            admin.Telefono == null)
         {
             return new AdminOperationResult
             {
                 Success = false,
-                Error = "EMAIL_EXISTS"
+                Error = "NO_FIELDS"
             };
         }
 
-        entity.Nombre = admin.Nombre.Trim();
-        entity.Correo = normalizedEmail;
-        entity.Telefono = admin.Telefono?.Trim();
+        // Actualizar nombre solamente si fue enviado.
+        if (admin.Nombre != null)
+        {
+            if (string.IsNullOrWhiteSpace(admin.Nombre))
+            {
+                return new AdminOperationResult
+                {
+                    Success = false,
+                    Error = "INVALID_NAME"
+                };
+            }
+
+            entity.Nombre = admin.Nombre.Trim();
+        }
+
+        // Actualizar correo solamente si fue enviado.
+        if (admin.Correo != null)
+        {
+            if (string.IsNullOrWhiteSpace(admin.Correo))
+            {
+                return new AdminOperationResult
+                {
+                    Success = false,
+                    Error = "INVALID_EMAIL"
+                };
+            }
+
+            var normalizedEmail = admin.Correo.Trim();
+
+            var emailExists = await _db.Usuarios
+                .AnyAsync(u =>
+                    u.Correo == normalizedEmail &&
+                    u.Id != id);
+
+            if (emailExists)
+            {
+                return new AdminOperationResult
+                {
+                    Success = false,
+                    Error = "EMAIL_EXISTS"
+                };
+            }
+
+            entity.Correo = normalizedEmail;
+        }
+
+        // Actualizar teléfono solamente si fue enviado.
+        if (admin.Telefono != null)
+        {
+            entity.Telefono = string.IsNullOrWhiteSpace(admin.Telefono)
+                ? null
+                : admin.Telefono.Trim();
+        }
+
         entity.FechaActualizacion = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();

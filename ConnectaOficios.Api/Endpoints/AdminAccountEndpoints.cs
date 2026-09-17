@@ -93,20 +93,32 @@ public static class AdminAccountEndpoints
                 {
                     "NOT_FOUND" => Results.NotFound(new
                     {
-                        message =
-                            "Cuenta administrativa no encontrada."
+                        message = "Cuenta administrativa no encontrada."
                     }),
 
                     "EMAIL_EXISTS" => Results.Conflict(new
                     {
-                        message =
-                            "El correo electrónico ya está registrado."
+                        message = "El correo electrónico ya está registrado."
+                    }),
+
+                    "INVALID_NAME" => Results.BadRequest(new
+                    {
+                        message = "El nombre no puede estar vacío."
+                    }),
+
+                    "INVALID_EMAIL" => Results.BadRequest(new
+                    {
+                        message = "El correo no puede estar vacío."
+                    }),
+
+                    "NO_FIELDS" => Results.BadRequest(new
+                    {
+                        message = "Debe proporcionar al menos un campo para actualizar."
                     }),
 
                     _ => Results.BadRequest(new
                     {
-                        message =
-                            "No fue posible actualizar la cuenta administrativa."
+                        message = "No fue posible actualizar la cuenta administrativa."
                     })
                 };
             }

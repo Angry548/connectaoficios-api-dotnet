@@ -1,5 +1,6 @@
 ﻿using ConnectaOficios.Api.DTOs.Users;
 using ConnectaOficios.Api.Services.Users;
+using System.Security.Claims;
 
 namespace ConnectaOficios.Api.Endpoints;
 
@@ -65,5 +66,61 @@ public static class UserEndpoints
             return Results.Ok(result);
         })
         .WithName("LoginUser");
+
+        group.MapPut("/me/password", async (
+    ChangePasswordRequest request,
+    ClaimsPrincipal currentUser,
+    IUserServices userServices) =>
+        {
+            var userIdValue = currentUser.FindFirstValue(
+                ClaimTypes.NameIdentifier
+            );
+
+            if (!int.TryParse(userIdValue, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await userServices.ChangePassword(
+                userId,
+                request
+            );
+
+            if (!result.Success)
+            {
+                return result.Error switch
+                {
+                    "USER_NOT_FOUND" => Results.NotFound(new
+                    {
+                        message = "Usuario no encontrado."
+                    }),
+
+                    "USER_INACTIVE" => Results.Forbid(),
+
+                    "INVALID_CURRENT_PASSWORD" => Results.BadRequest(new
+                    {
+                        message = "La contraseña actual es incorrecta."
+                    }),
+
+                    "SAME_PASSWORD" => Results.BadRequest(new
+                    {
+                        message =
+                            "La nueva contraseña debe ser diferente de la contraseña actual."
+                    }),
+
+                    _ => Results.BadRequest(new
+                    {
+                        message = "No fue posible cambiar la contraseña."
+                    })
+                };
+            }
+
+            return Results.Ok(new
+            {
+                message = "Contraseña actualizada correctamente."
+            });
+        })
+.RequireAuthorization()
+.WithName("ChangePassword");
     }
 }

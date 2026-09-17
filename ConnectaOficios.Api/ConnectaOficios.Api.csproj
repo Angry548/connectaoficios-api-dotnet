@@ -23,8 +23,4 @@
     <ProjectReference Include="..\ConnectaOficios.Domain\ConnectaOficios.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Security\" />
-  </ItemGroup>
-
 </Project>
