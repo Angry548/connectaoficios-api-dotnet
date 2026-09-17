@@ -25,10 +25,13 @@ public interface IUserServices
     Task<PasswordChangeResult> ChangePassword(
     int userId,
     ChangePasswordRequest request
-        
-    );
+);
 
     Task<PasswordResetRequestResult> RequestPasswordReset(
         ForgotPasswordRequest request
+    );
+
+    Task<PasswordResetResult> ResetPassword(
+        ResetPasswordRequest request
     );
 }

@@ -136,6 +136,58 @@ public static class UserEndpoints
             });
         })
 .WithName("ForgotPassword");
+
+        group.MapPost("/password/reset", async (
+    ResetPasswordRequest request,
+    IUserServices userServices) =>
+        {
+            var result = await userServices.ResetPassword(
+                request
+            );
+
+            if (!result.Success)
+            {
+                return result.Error switch
+                {
+                    "TOKEN_INVALID" => Results.BadRequest(new
+                    {
+                        message =
+                            "El token de recuperación no es válido."
+                    }),
+
+                    "TOKEN_EXPIRED" => Results.BadRequest(new
+                    {
+                        message =
+                            "El token de recuperación ha expirado. Solicite uno nuevo."
+                    }),
+
+                    "USER_INACTIVE" => Results.BadRequest(new
+                    {
+                        message =
+                            "No fue posible restablecer la contraseña."
+                    }),
+
+                    "SAME_PASSWORD" => Results.BadRequest(new
+                    {
+                        message =
+                            "La nueva contraseña debe ser diferente de la contraseña anterior."
+                    }),
+
+                    _ => Results.BadRequest(new
+                    {
+                        message =
+                            "No fue posible restablecer la contraseña."
+                    })
+                };
+            }
+
+            return Results.Ok(new
+            {
+                message =
+                    "Contraseña restablecida correctamente."
+            });
+        })
+.WithName("ResetPassword");
     }
 
 }

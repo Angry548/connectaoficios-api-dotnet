@@ -15,15 +15,18 @@ public class UserServices : IUserServices
     private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
     private readonly IJwtService _jwtService;
+    private readonly IHostEnvironment _environment;
 
     public UserServices(
         ApplicationDbContext db,
         IMapper mapper,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        IHostEnvironment environment)
     {
         _db = db;
         _mapper = mapper;
         _jwtService = jwtService;
+        _environment = environment;
     }
 
     public async Task<UserResponse?> Register(UserRequest user)
@@ -33,37 +36,49 @@ public class UserServices : IUserServices
             return null;
         }
 
+        var normalizedEmail = user.Correo.Trim();
+
         var emailExists = await _db.Usuarios
-            .AnyAsync(u => u.Correo == user.Correo);
+            .AnyAsync(u => u.Correo == normalizedEmail);
 
         if (emailExists)
         {
             return null;
         }
 
-        var entity = _mapper.Map<Usuario>(user);
+        var usuario = _mapper.Map<Usuario>(user);
 
-        entity.Estado = EstadoUsuario.Activo;
-        entity.FechaCreacion = DateTime.UtcNow;
+        usuario.Nombre = user.Nombre.Trim();
+        usuario.Correo = normalizedEmail;
+        usuario.Telefono = user.Telefono?.Trim();
 
-        entity.PasswordHash =
-            BCrypt.Net.BCrypt.HashPassword(user.Password);
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+            user.Password
+        );
 
-        await _db.Usuarios.AddAsync(entity);
+        usuario.RolId = user.RolId;
+        usuario.Estado = EstadoUsuario.Activo;
+        usuario.FechaCreacion = DateTime.UtcNow;
+
+        _db.Usuarios.Add(usuario);
+
         await _db.SaveChangesAsync();
 
-        await _db.Entry(entity)
+        await _db.Entry(usuario)
             .Reference(u => u.Rol)
             .LoadAsync();
 
-        return _mapper.Map<UserResponse>(entity);
+        return _mapper.Map<UserResponse>(usuario);
     }
 
     public async Task<LoginResponse?> Login(LoginRequest login)
     {
+        var normalizedEmail = login.Correo.Trim();
+
         var usuario = await _db.Usuarios
             .Include(u => u.Rol)
-            .FirstOrDefaultAsync(u => u.Correo == login.Correo);
+            .FirstOrDefaultAsync(u =>
+                u.Correo == normalizedEmail);
 
         if (usuario == null)
         {
@@ -99,38 +114,34 @@ public class UserServices : IUserServices
     }
 
     public async Task<IEnumerable<UserResponse>> GetAll(
-    string? nombre = null,
-    string? correo = null,
-    int? rolId = null,
-    int? estado = null)
+        string? nombre = null,
+        string? correo = null,
+        int? rolId = null,
+        int? estado = null)
     {
         var query = _db.Usuarios
             .AsNoTracking()
             .Include(u => u.Rol)
             .AsQueryable();
 
-        // Filtrar por nombre
         if (!string.IsNullOrWhiteSpace(nombre))
         {
             query = query.Where(u =>
                 u.Nombre.Contains(nombre));
         }
 
-        // Filtrar por correo
         if (!string.IsNullOrWhiteSpace(correo))
         {
             query = query.Where(u =>
                 u.Correo.Contains(correo));
         }
 
-        // Filtrar por rol
         if (rolId.HasValue)
         {
             query = query.Where(u =>
                 u.RolId == rolId.Value);
         }
 
-        // Filtrar por estado
         if (estado.HasValue)
         {
             query = query.Where(u =>
@@ -143,6 +154,7 @@ public class UserServices : IUserServices
 
         return _mapper.Map<IEnumerable<UserResponse>>(usuarios);
     }
+
     public async Task<UserResponse?> GetById(int id)
     {
         var usuario = await _db.Usuarios
@@ -157,9 +169,10 @@ public class UserServices : IUserServices
 
         return _mapper.Map<UserResponse>(usuario);
     }
+
     public async Task<UserResponse?> ChangeStatus(
-    int id,
-    int estado)
+        int id,
+        int estado)
     {
         var usuario = await _db.Usuarios
             .Include(u => u.Rol)
@@ -170,8 +183,6 @@ public class UserServices : IUserServices
             return null;
         }
 
-        // Las cuentas administrativas se gestionan
-        // exclusivamente desde /api/admin/accounts.
         if (usuario.RolId == 3 || usuario.RolId == 4)
         {
             return null;
@@ -190,9 +201,10 @@ public class UserServices : IUserServices
 
         return _mapper.Map<UserResponse>(usuario);
     }
+
     public async Task<PasswordChangeResult> ChangePassword(
-    int userId,
-    ChangePasswordRequest request)
+        int userId,
+        ChangePasswordRequest request)
     {
         var usuario = await _db.Usuarios
             .FirstOrDefaultAsync(u => u.Id == userId);
@@ -248,6 +260,9 @@ public class UserServices : IUserServices
             request.NewPassword
         );
 
+        usuario.PasswordResetTokenHash = null;
+        usuario.PasswordResetTokenExpiresAt = null;
+
         usuario.FechaActualizacion = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -256,12 +271,10 @@ public class UserServices : IUserServices
         {
             Success = true
         };
-
-
     }
 
     public async Task<PasswordResetRequestResult> RequestPasswordReset(
-    ForgotPasswordRequest request)
+        ForgotPasswordRequest request)
     {
         var normalizedEmail = request.Correo.Trim();
 
@@ -269,7 +282,6 @@ public class UserServices : IUserServices
             .FirstOrDefaultAsync(u =>
                 u.Correo == normalizedEmail);
 
-        // No revelamos si el correo existe o no.
         if (usuario == null ||
             usuario.Estado != EstadoUsuario.Activo)
         {
@@ -279,12 +291,10 @@ public class UserServices : IUserServices
             };
         }
 
-        // Token criptográficamente seguro.
         var tokenBytes = RandomNumberGenerator.GetBytes(32);
 
         var resetToken = Convert.ToBase64String(tokenBytes);
 
-        // Guardamos únicamente el hash SHA-256.
         var tokenHashBytes = SHA256.HashData(
             Encoding.UTF8.GetBytes(resetToken)
         );
@@ -302,10 +312,114 @@ public class UserServices : IUserServices
 
         await _db.SaveChangesAsync();
 
+        if (_environment.IsDevelopment())
+        {
+            Console.WriteLine(
+                $"[DEV] Password reset token para {usuario.Correo}: {resetToken}"
+            );
+        }
+
         return new PasswordResetRequestResult
         {
             Accepted = true,
             ResetToken = resetToken
+        };
+    }
+
+    public async Task<PasswordResetResult> ResetPassword(
+        ResetPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token))
+        {
+            return new PasswordResetResult
+            {
+                Success = false,
+                Error = "TOKEN_INVALID"
+            };
+        }
+
+        var tokenHashBytes = SHA256.HashData(
+            Encoding.UTF8.GetBytes(request.Token)
+        );
+
+        var tokenHash = Convert.ToHexString(
+            tokenHashBytes
+        );
+
+        var usuario = await _db.Usuarios
+            .FirstOrDefaultAsync(u =>
+                u.PasswordResetTokenHash == tokenHash);
+
+        if (usuario == null)
+        {
+            return new PasswordResetResult
+            {
+                Success = false,
+                Error = "TOKEN_INVALID"
+            };
+        }
+
+        if (usuario.Estado != EstadoUsuario.Activo)
+        {
+            return new PasswordResetResult
+            {
+                Success = false,
+                Error = "USER_INACTIVE"
+            };
+        }
+
+        if (usuario.PasswordResetTokenExpiresAt == null)
+        {
+            return new PasswordResetResult
+            {
+                Success = false,
+                Error = "TOKEN_INVALID"
+            };
+        }
+
+        if (usuario.PasswordResetTokenExpiresAt <= DateTime.UtcNow)
+        {
+            usuario.PasswordResetTokenHash = null;
+            usuario.PasswordResetTokenExpiresAt = null;
+            usuario.FechaActualizacion = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            return new PasswordResetResult
+            {
+                Success = false,
+                Error = "TOKEN_EXPIRED"
+            };
+        }
+
+        var samePassword = BCrypt.Net.BCrypt.Verify(
+            request.NewPassword,
+            usuario.PasswordHash
+        );
+
+        if (samePassword)
+        {
+            return new PasswordResetResult
+            {
+                Success = false,
+                Error = "SAME_PASSWORD"
+            };
+        }
+
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+            request.NewPassword
+        );
+
+        usuario.PasswordResetTokenHash = null;
+        usuario.PasswordResetTokenExpiresAt = null;
+
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return new PasswordResetResult
+        {
+            Success = true
         };
     }
 }
