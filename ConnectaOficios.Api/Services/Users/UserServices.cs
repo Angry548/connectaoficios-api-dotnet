@@ -5,6 +5,8 @@ using ConnectaOficios.Domain.Data;
 using ConnectaOficios.Domain.Entities;
 using ConnectaOficios.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ConnectaOficios.Api.Services.Users;
 
@@ -253,6 +255,57 @@ public class UserServices : IUserServices
         return new PasswordChangeResult
         {
             Success = true
+        };
+
+
+    }
+
+    public async Task<PasswordResetRequestResult> RequestPasswordReset(
+    ForgotPasswordRequest request)
+    {
+        var normalizedEmail = request.Correo.Trim();
+
+        var usuario = await _db.Usuarios
+            .FirstOrDefaultAsync(u =>
+                u.Correo == normalizedEmail);
+
+        // No revelamos si el correo existe o no.
+        if (usuario == null ||
+            usuario.Estado != EstadoUsuario.Activo)
+        {
+            return new PasswordResetRequestResult
+            {
+                Accepted = true
+            };
+        }
+
+        // Token criptográficamente seguro.
+        var tokenBytes = RandomNumberGenerator.GetBytes(32);
+
+        var resetToken = Convert.ToBase64String(tokenBytes);
+
+        // Guardamos únicamente el hash SHA-256.
+        var tokenHashBytes = SHA256.HashData(
+            Encoding.UTF8.GetBytes(resetToken)
+        );
+
+        var tokenHash = Convert.ToHexString(
+            tokenHashBytes
+        );
+
+        usuario.PasswordResetTokenHash = tokenHash;
+
+        usuario.PasswordResetTokenExpiresAt =
+            DateTime.UtcNow.AddMinutes(15);
+
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return new PasswordResetRequestResult
+        {
+            Accepted = true,
+            ResetToken = resetToken
         };
     }
 }

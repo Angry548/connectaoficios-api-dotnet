@@ -122,5 +122,20 @@ public static class UserEndpoints
         })
 .RequireAuthorization()
 .WithName("ChangePassword");
+
+        group.MapPost("/password/forgot", async (
+    ForgotPasswordRequest request,
+    IUserServices userServices) =>
+        {
+            await userServices.RequestPasswordReset(request);
+
+            return Results.Ok(new
+            {
+                message =
+                    "Si existe una cuenta asociada al correo indicado, se enviarán instrucciones para restablecer la contraseña."
+            });
+        })
+.WithName("ForgotPassword");
     }
+
 }

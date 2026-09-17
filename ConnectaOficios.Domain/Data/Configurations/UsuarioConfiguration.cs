@@ -45,5 +45,10 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
             .WithMany(r => r.Usuarios)
             .HasForeignKey(u => u.RolId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(u => u.PasswordResetTokenHash)
+    .HasMaxLength(64);
+
+        builder.Property(u => u.PasswordResetTokenExpiresAt);
     }
 }

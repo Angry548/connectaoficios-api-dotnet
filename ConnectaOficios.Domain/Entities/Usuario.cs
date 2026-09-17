@@ -18,11 +18,16 @@ public class Usuario
 
     public Rol Rol { get; set; } = null!;
 
-    public EstadoUsuario Estado { get; set; } = EstadoUsuario.Activo;
+    public EstadoUsuario Estado { get; set; } =
+        EstadoUsuario.Activo;
 
     public DateTime FechaCreacion { get; set; }
 
     public DateTime? FechaActualizacion { get; set; }
 
     public DateTime? UltimoAcceso { get; set; }
+
+    public string? PasswordResetTokenHash { get; set; }
+
+    public DateTime? PasswordResetTokenExpiresAt { get; set; }
 }
