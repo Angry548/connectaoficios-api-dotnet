@@ -10,4 +10,13 @@ public interface IAdminServices
     Task<UserResponse?> GetById(int id);
 
     Task<UserResponse?> Create(AdminAccountRequest admin);
+
+    Task<AdminOperationResult> Update(
+        int id,
+        AdminAccountUpdateRequest admin);
+
+    Task<AdminOperationResult> ChangeStatus(
+        int id,
+        int estado,
+        int currentUserId);
 }

@@ -91,4 +91,127 @@ public class AdminServices : IAdminServices
 
         return _mapper.Map<UserResponse>(entity);
     }
+
+    public async Task<AdminOperationResult> Update(
+    int id,
+    AdminAccountUpdateRequest admin)
+    {
+        var entity = await _db.Usuarios
+            .Include(u => u.Rol)
+            .FirstOrDefaultAsync(u =>
+                u.Id == id &&
+                (u.RolId == 3 || u.RolId == 4));
+
+        if (entity == null)
+        {
+            return new AdminOperationResult
+            {
+                Success = false,
+                Error = "NOT_FOUND"
+            };
+        }
+
+        var normalizedEmail = admin.Correo.Trim();
+
+        var emailExists = await _db.Usuarios
+            .AnyAsync(u =>
+                u.Correo == normalizedEmail &&
+                u.Id != id);
+
+        if (emailExists)
+        {
+            return new AdminOperationResult
+            {
+                Success = false,
+                Error = "EMAIL_EXISTS"
+            };
+        }
+
+        entity.Nombre = admin.Nombre.Trim();
+        entity.Correo = normalizedEmail;
+        entity.Telefono = admin.Telefono?.Trim();
+        entity.FechaActualizacion = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return new AdminOperationResult
+        {
+            Success = true,
+            Admin = _mapper.Map<UserResponse>(entity)
+        };
+    }
+
+    public async Task<AdminOperationResult> ChangeStatus(
+    int id,
+    int estado,
+    int currentUserId)
+    {
+        if (estado != (int)EstadoUsuario.Activo &&
+            estado != (int)EstadoUsuario.Inactivo)
+        {
+            return new AdminOperationResult
+            {
+                Success = false,
+                Error = "INVALID_STATUS"
+            };
+        }
+
+        var administrador = await _db.Usuarios
+            .Include(u => u.Rol)
+            .FirstOrDefaultAsync(u =>
+                u.Id == id &&
+                (u.RolId == 3 || u.RolId == 4));
+
+        if (administrador == null)
+        {
+            return new AdminOperationResult
+            {
+                Success = false,
+                Error = "NOT_FOUND"
+            };
+        }
+
+        // Un AdministradorPrincipal no puede desactivar su propia cuenta.
+        if (administrador.Id == currentUserId &&
+            estado == (int)EstadoUsuario.Inactivo)
+        {
+            return new AdminOperationResult
+            {
+                Success = false,
+                Error = "CANNOT_DISABLE_SELF"
+            };
+        }
+
+        // Si se intenta desactivar un Principal,
+        // debe quedar al menos otro Principal activo.
+        if (administrador.RolId == 4 &&
+            estado == (int)EstadoUsuario.Inactivo &&
+            administrador.Estado == EstadoUsuario.Activo)
+        {
+            var activePrincipals = await _db.Usuarios
+                .CountAsync(u =>
+                    u.RolId == 4 &&
+                    u.Estado == EstadoUsuario.Activo);
+
+            if (activePrincipals <= 1)
+            {
+                return new AdminOperationResult
+                {
+                    Success = false,
+                    Error = "LAST_ACTIVE_PRINCIPAL"
+                };
+            }
+        }
+
+        administrador.Estado = (EstadoUsuario)estado;
+        administrador.FechaActualizacion = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return new AdminOperationResult
+        {
+            Success = true,
+            Admin = _mapper.Map<UserResponse>(administrador)
+        };
+    }
 }

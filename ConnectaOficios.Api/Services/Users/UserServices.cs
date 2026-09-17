@@ -168,7 +168,13 @@ public class UserServices : IUserServices
             return null;
         }
 
-        // Validar estados permitidos
+        // Las cuentas administrativas se gestionan
+        // exclusivamente desde /api/admin/accounts.
+        if (usuario.RolId == 3 || usuario.RolId == 4)
+        {
+            return null;
+        }
+
         if (estado != (int)EstadoUsuario.Activo &&
             estado != (int)EstadoUsuario.Inactivo)
         {

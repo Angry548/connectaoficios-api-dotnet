@@ -19,7 +19,9 @@ public static class AdminBootstrapService
         // Si ya existe un Administrador Principal,
         // no se crea otro automáticamente.
         var principalExists = await db.Usuarios
-            .AnyAsync(u => u.RolId == 4);
+    .AnyAsync(u =>
+        u.RolId == 4 &&
+        u.Estado == EstadoUsuario.Activo);
 
         if (principalExists)
         {
