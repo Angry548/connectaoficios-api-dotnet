@@ -7,6 +7,7 @@ using ConnectaOficios.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+using ConnectaOficios.Api.Services.Email;
 
 namespace ConnectaOficios.Api.Services.Users;
 
@@ -15,18 +16,19 @@ public class UserServices : IUserServices
     private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
     private readonly IJwtService _jwtService;
-    private readonly IHostEnvironment _environment;
+    private readonly IEmailService _emailService;
 
     public UserServices(
-        ApplicationDbContext db,
-        IMapper mapper,
-        IJwtService jwtService,
-        IHostEnvironment environment)
+    ApplicationDbContext db,
+    IMapper mapper,
+    IJwtService jwtService,
+    IHostEnvironment environment,
+    IEmailService emailService)
     {
         _db = db;
         _mapper = mapper;
         _jwtService = jwtService;
-        _environment = environment;
+        _emailService = emailService;
     }
 
     public async Task<UserResponse?> Register(UserRequest user)
@@ -274,7 +276,7 @@ public class UserServices : IUserServices
     }
 
     public async Task<PasswordResetRequestResult> RequestPasswordReset(
-        ForgotPasswordRequest request)
+    ForgotPasswordRequest request)
     {
         var normalizedEmail = request.Correo.Trim();
 
@@ -282,6 +284,7 @@ public class UserServices : IUserServices
             .FirstOrDefaultAsync(u =>
                 u.Correo == normalizedEmail);
 
+        // No revelamos si el correo existe o si está inactivo.
         if (usuario == null ||
             usuario.Estado != EstadoUsuario.Activo)
         {
@@ -291,10 +294,12 @@ public class UserServices : IUserServices
             };
         }
 
+        // Generar token criptográficamente seguro.
         var tokenBytes = RandomNumberGenerator.GetBytes(32);
 
         var resetToken = Convert.ToBase64String(tokenBytes);
 
+        // Guardamos únicamente SHA-256(token).
         var tokenHashBytes = SHA256.HashData(
             Encoding.UTF8.GetBytes(resetToken)
         );
@@ -312,17 +317,16 @@ public class UserServices : IUserServices
 
         await _db.SaveChangesAsync();
 
-        if (_environment.IsDevelopment())
-        {
-            Console.WriteLine(
-                $"[DEV] Password reset token para {usuario.Correo}: {resetToken}"
-            );
-        }
+        // El token real solamente se entrega al correo del usuario.
+        await _emailService.SendPasswordResetEmailAsync(
+            usuario.Correo,
+            usuario.Nombre,
+            resetToken
+        );
 
         return new PasswordResetRequestResult
         {
-            Accepted = true,
-            ResetToken = resetToken
+            Accepted = true
         };
     }
 

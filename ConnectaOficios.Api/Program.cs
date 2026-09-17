@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
+using Resend;
+using ConnectaOficios.Api.Services.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -110,6 +112,23 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdministradorPrincipal", policy =>
         policy.RequireRole("AdministradorPrincipal"));
 });
+
+builder.Services.AddOptions();
+
+builder.Services.AddHttpClient<ResendClient>();
+
+builder.Services.Configure<ResendClientOptions>(options =>
+{
+    options.ApiToken =
+        builder.Configuration["Resend:ApiKey"]
+        ?? throw new InvalidOperationException(
+            "No se ha configurado Resend:ApiKey."
+        );
+});
+
+builder.Services.AddTransient<IResend, ResendClient>();
+
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
