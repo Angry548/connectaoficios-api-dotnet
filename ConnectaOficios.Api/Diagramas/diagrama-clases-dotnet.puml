@@ -1,0 +1,71 @@
+@startuml
+
+title ConnectaOficios - Diagrama de Clases API .NET
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+left to right direction
+
+
+class Rol {
+    - id: int
+    - nombre: String
+    - descripcion: String
+    - activo: Boolean
+    - usuarios: ICollection<Usuario>
+}
+
+
+class Usuario {
+    - id: int
+    - nombre: String
+    - correo: String
+    - passwordHash: String
+    - telefono: String
+    - rolId: int
+    - rol: Rol
+    - estado: EstadoUsuario
+    - fechaCreacion: DateTime
+    - fechaActualizacion: DateTime
+    - ultimoAcceso: DateTime
+    - passwordResetTokenHash: String
+    - passwordResetTokenExpiresAt: DateTime
+
+    + registrar(user: UserRequest): UserResponse
+    + iniciarSesion(login: LoginRequest): LoginResponse
+    + obtenerTodos(nombre: String, correo: String, rolId: int, estado: int): List<UserResponse>
+    + obtenerPorId(id: int): UserResponse
+    + cambiarEstado(id: int, estado: int): UserResponse
+    + actualizarUsuario(userId: int, request: UserUpdateRequest): UserUpdateResult
+    + cambiarContrasena(userId: int, request: ChangePasswordRequest): PasswordChangeResult
+    + solicitarRecuperacion(request: ForgotPasswordRequest): PasswordResetRequestResult
+    + restablecerContrasena(request: ResetPasswordRequest): PasswordResetResult
+    + crearAdministrador(admin: AdminAccountRequest): UserResponse
+    + actualizarAdministrador(id: int, admin: AdminAccountUpdateRequest): AdminOperationResult
+    + cambiarEstadoAdministrador(id: int, estado: int, currentUserId: int): AdminOperationResult
+}
+
+
+enum EstadoUsuario {
+    Activo = 1
+    Inactivo = 2
+}
+
+
+' =========================================================
+' RELACIONES Y ASOCIACIONES
+' =========================================================
+
+Rol "1" -- "0..*" Usuario : posee >
+
+
+' =========================================================
+' RELACIONES CON ENUMS
+' =========================================================
+
+EstadoUsuario "1" -- "0..*" Usuario : define estado >
+
+
+@enduml

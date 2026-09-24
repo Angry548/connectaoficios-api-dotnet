@@ -15,28 +15,23 @@ using ConnectaOficios.Api.Services.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controladores
 builder.Services.AddControllers();
 
-// AutoMapper
 builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddProfile<MappingProfile>();
 });
 
-// Servicios
 builder.Services.AddScoped<IUserServices, UserServices>();
 builder.Services.AddScoped<IAdminServices, AdminServices>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
-// Base de datos SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
-// Swagger
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
@@ -56,7 +51,6 @@ builder.Services.AddSwaggerGen(options =>
         });
 });
 
-// Autenticación JWT
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException(
         "La clave JWT no está configurada."
@@ -94,7 +88,6 @@ builder.Services
         };
     });
 
-// Autorización basada en roles
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Cliente", policy =>
@@ -127,31 +120,36 @@ builder.Services.Configure<ResendClientOptions>(options =>
 });
 
 builder.Services.AddTransient<IResend, ResendClient>();
-
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    options.SwaggerEndpoint(
+        "/swagger/v1/swagger.json",
+        "ConnectaOficios API .NET v1"
+    );
+
+    options.RoutePrefix = "swagger";
+});
 
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "OK",
+    api = "ConnectaOficios.Api"
+}));
 
-// Endpoints de la API
+app.MapControllers();
 app.AddEndpoints();
 
-// Crear Administrador Principal inicial si todavía no existe.
-await AdminBootstrapService.CreateInitialAdminAsync(
-    app.Services,
-    app.Configuration
-);
+await AdminBootstrapService.CreateInitialAdminAsync(app.Services, app.Configuration);
 
 app.Run();

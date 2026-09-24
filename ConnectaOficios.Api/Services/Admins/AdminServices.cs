@@ -55,7 +55,6 @@ public class AdminServices : IAdminServices
     public async Task<UserResponse?> Create(
         AdminAccountRequest admin)
     {
-        // Solo se pueden crear cuentas administrativas.
         if (admin.RolId != 3 && admin.RolId != 4)
         {
             return null;
@@ -111,7 +110,6 @@ public class AdminServices : IAdminServices
             };
         }
 
-        // Debe enviarse al menos un campo para actualizar.
         if (admin.Nombre == null &&
             admin.Correo == null &&
             admin.Telefono == null)
@@ -123,7 +121,6 @@ public class AdminServices : IAdminServices
             };
         }
 
-        // Actualizar nombre solamente si fue enviado.
         if (admin.Nombre != null)
         {
             if (string.IsNullOrWhiteSpace(admin.Nombre))
@@ -138,7 +135,6 @@ public class AdminServices : IAdminServices
             entity.Nombre = admin.Nombre.Trim();
         }
 
-        // Actualizar correo solamente si fue enviado.
         if (admin.Correo != null)
         {
             if (string.IsNullOrWhiteSpace(admin.Correo))
@@ -169,7 +165,6 @@ public class AdminServices : IAdminServices
             entity.Correo = normalizedEmail;
         }
 
-        // Actualizar teléfono solamente si fue enviado.
         if (admin.Telefono != null)
         {
             entity.Telefono = string.IsNullOrWhiteSpace(admin.Telefono)
@@ -218,7 +213,6 @@ public class AdminServices : IAdminServices
             };
         }
 
-        // Un AdministradorPrincipal no puede desactivar su propia cuenta.
         if (administrador.Id == currentUserId &&
             estado == (int)EstadoUsuario.Inactivo)
         {
@@ -229,8 +223,6 @@ public class AdminServices : IAdminServices
             };
         }
 
-        // Si se intenta desactivar un Principal,
-        // debe quedar al menos otro Principal activo.
         if (administrador.RolId == 4 &&
             estado == (int)EstadoUsuario.Inactivo &&
             administrador.Estado == EstadoUsuario.Activo)

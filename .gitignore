@@ -480,3 +480,10 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Archivos locales de despliegue con secretos
+ConnectaOficios.Api/web.config.production.backup
+
+# Artefactos locales de despliegue
+ConnectaOficios.Api/ConnectaOficios-Publish.zip
+ConnectaOficios.Api/app_offline.htm
