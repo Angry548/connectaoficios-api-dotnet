@@ -12,30 +12,73 @@ public static class AdminAccountEndpoints
         var group = routes
             .MapGroup("/api/admin/accounts")
             .WithTags("Admin Accounts")
-            .RequireAuthorization("AdministradorPrincipal");
+            .RequireAuthorization(
+                "AdministradorPrincipal"
+            );
 
-        // GET: /api/admin/accounts
         group.MapGet("/", async (
-            IAdminServices adminServices) =>
+            IAdminServices adminServices,
+            string? nombre,
+            string? correo,
+            int? rolId,
+            int? estado,
+            int page = 1,
+            int pageSize = 20) =>
         {
-            var administradores = await adminServices.GetAll();
+            var administradores =
+                await adminServices.GetAll(
+                    nombre,
+                    correo,
+                    rolId,
+                    estado,
+                    page,
+                    pageSize
+                );
 
             return Results.Ok(administradores);
         })
         .WithName("GetAdminAccounts");
 
-        // GET: /api/admin/accounts/{id}
+        group.MapGet("/search", async (
+            IAdminServices adminServices,
+            string? texto,
+            int? rolId,
+            int limit = 10) =>
+        {
+            if (string.IsNullOrWhiteSpace(texto) ||
+                texto.Trim().Length < 2)
+            {
+                return Results.BadRequest(new
+                {
+                    message =
+                        "Debe proporcionar al menos 2 caracteres para realizar la búsqueda."
+                });
+            }
+
+            var administradores =
+                await adminServices.Search(
+                    texto,
+                    rolId,
+                    limit
+                );
+
+            return Results.Ok(administradores);
+        })
+        .WithName("SearchAdminAccounts");
+
         group.MapGet("/{id:int}", async (
             int id,
             IAdminServices adminServices) =>
         {
-            var administrador = await adminServices.GetById(id);
+            var administrador =
+                await adminServices.GetById(id);
 
             if (administrador == null)
             {
                 return Results.NotFound(new
                 {
-                    message = "Cuenta administrativa no encontrada."
+                    message =
+                        "Cuenta administrativa no encontrada."
                 });
             }
 
@@ -43,7 +86,6 @@ public static class AdminAccountEndpoints
         })
         .WithName("GetAdminAccountById");
 
-        // POST: /api/admin/accounts
         group.MapPost("/", async (
             AdminAccountRequest request,
             IAdminServices adminServices) =>
@@ -58,7 +100,8 @@ public static class AdminAccountEndpoints
                 });
             }
 
-            var administrador = await adminServices.Create(request);
+            var administrador =
+                await adminServices.Create(request);
 
             if (administrador == null)
             {
@@ -76,50 +119,62 @@ public static class AdminAccountEndpoints
         })
         .WithName("CreateAdminAccount");
 
-        // PUT: /api/admin/accounts/{id}
         group.MapPut("/{id:int}", async (
             int id,
             AdminAccountUpdateRequest request,
             IAdminServices adminServices) =>
         {
-            var result = await adminServices.Update(
-                id,
-                request
-            );
+            var result =
+                await adminServices.Update(
+                    id,
+                    request
+                );
 
             if (!result.Success)
             {
                 return result.Error switch
                 {
-                    "NOT_FOUND" => Results.NotFound(new
-                    {
-                        message = "Cuenta administrativa no encontrada."
-                    }),
+                    "NOT_FOUND" =>
+                        Results.NotFound(new
+                        {
+                            message =
+                                "Cuenta administrativa no encontrada."
+                        }),
 
-                    "EMAIL_EXISTS" => Results.Conflict(new
-                    {
-                        message = "El correo electrónico ya está registrado."
-                    }),
+                    "EMAIL_EXISTS" =>
+                        Results.Conflict(new
+                        {
+                            message =
+                                "El correo electrónico ya está registrado."
+                        }),
 
-                    "INVALID_NAME" => Results.BadRequest(new
-                    {
-                        message = "El nombre no puede estar vacío."
-                    }),
+                    "INVALID_NAME" =>
+                        Results.BadRequest(new
+                        {
+                            message =
+                                "El nombre no puede estar vacío."
+                        }),
 
-                    "INVALID_EMAIL" => Results.BadRequest(new
-                    {
-                        message = "El correo no puede estar vacío."
-                    }),
+                    "INVALID_EMAIL" =>
+                        Results.BadRequest(new
+                        {
+                            message =
+                                "El correo no puede estar vacío."
+                        }),
 
-                    "NO_FIELDS" => Results.BadRequest(new
-                    {
-                        message = "Debe proporcionar al menos un campo para actualizar."
-                    }),
+                    "NO_FIELDS" =>
+                        Results.BadRequest(new
+                        {
+                            message =
+                                "Debe proporcionar al menos un campo para actualizar."
+                        }),
 
-                    _ => Results.BadRequest(new
-                    {
-                        message = "No fue posible actualizar la cuenta administrativa."
-                    })
+                    _ =>
+                        Results.BadRequest(new
+                        {
+                            message =
+                                "No fue posible actualizar la cuenta administrativa."
+                        })
                 };
             }
 
@@ -127,7 +182,6 @@ public static class AdminAccountEndpoints
         })
         .WithName("UpdateAdminAccount");
 
-        // PATCH: /api/admin/accounts/{id}/status
         group.MapPatch("/{id:int}/status", async (
             int id,
             AdminStatusRequest request,
@@ -144,9 +198,10 @@ public static class AdminAccountEndpoints
                 });
             }
 
-            var userIdValue = currentUser.FindFirstValue(
-                ClaimTypes.NameIdentifier
-            );
+            var userIdValue =
+                currentUser.FindFirstValue(
+                    ClaimTypes.NameIdentifier
+                );
 
             if (!int.TryParse(
                 userIdValue,
@@ -155,45 +210,51 @@ public static class AdminAccountEndpoints
                 return Results.Unauthorized();
             }
 
-            var result = await adminServices.ChangeStatus(
-                id,
-                request.Estado,
-                currentUserId
-            );
+            var result =
+                await adminServices.ChangeStatus(
+                    id,
+                    request.Estado,
+                    currentUserId
+                );
 
             if (!result.Success)
             {
                 return result.Error switch
                 {
-                    "NOT_FOUND" => Results.NotFound(new
-                    {
-                        message =
-                            "Cuenta administrativa no encontrada."
-                    }),
+                    "NOT_FOUND" =>
+                        Results.NotFound(new
+                        {
+                            message =
+                                "Cuenta administrativa no encontrada."
+                        }),
 
-                    "CANNOT_DISABLE_SELF" => Results.Conflict(new
-                    {
-                        message =
-                            "No puede desactivar su propia cuenta administrativa."
-                    }),
+                    "CANNOT_DISABLE_SELF" =>
+                        Results.Conflict(new
+                        {
+                            message =
+                                "No puede desactivar su propia cuenta administrativa."
+                        }),
 
-                    "LAST_ACTIVE_PRINCIPAL" => Results.Conflict(new
-                    {
-                        message =
-                            "No se puede desactivar el último Administrador Principal activo."
-                    }),
+                    "LAST_ACTIVE_PRINCIPAL" =>
+                        Results.Conflict(new
+                        {
+                            message =
+                                "No se puede desactivar el último Administrador Principal activo."
+                        }),
 
-                    "INVALID_STATUS" => Results.BadRequest(new
-                    {
-                        message =
-                            "El estado debe ser 1 (Activo) o 2 (Inactivo)."
-                    }),
+                    "INVALID_STATUS" =>
+                        Results.BadRequest(new
+                        {
+                            message =
+                                "El estado debe ser 1 (Activo) o 2 (Inactivo)."
+                        }),
 
-                    _ => Results.BadRequest(new
-                    {
-                        message =
-                            "No fue posible cambiar el estado de la cuenta administrativa."
-                    })
+                    _ =>
+                        Results.BadRequest(new
+                        {
+                            message =
+                                "No fue posible cambiar el estado de la cuenta administrativa."
+                        })
                 };
             }
 

@@ -35,13 +35,19 @@ class Usuario {
 
     + registrar(user: UserRequest): UserResponse
     + iniciarSesion(login: LoginRequest): LoginResponse
-    + obtenerTodos(nombre: String, correo: String, rolId: int, estado: int): List<UserResponse>
+
+    + obtenerTodos(nombre: String, correo: String, rolId: int, estado: int, page: int, pageSize: int): PagedResult<UserResponse>
+    + buscarUsuarios(texto: String, rolId: int, limit: int): List<UserSearchResponse>
+
     + obtenerPorId(id: int): UserResponse
     + cambiarEstado(id: int, estado: int): UserResponse
     + actualizarUsuario(userId: int, request: UserUpdateRequest): UserUpdateResult
     + cambiarContrasena(userId: int, request: ChangePasswordRequest): PasswordChangeResult
     + solicitarRecuperacion(request: ForgotPasswordRequest): PasswordResetRequestResult
     + restablecerContrasena(request: ResetPasswordRequest): PasswordResetResult
+
+    + obtenerAdministradores(nombre: String, correo: String, rolId: int, estado: int, page: int, pageSize: int): PagedResult<UserResponse>
+    + buscarAdministradores(texto: String, rolId: int, limit: int): List<UserSearchResponse>
     + crearAdministrador(admin: AdminAccountRequest): UserResponse
     + actualizarAdministrador(id: int, admin: AdminAccountUpdateRequest): AdminOperationResult
     + cambiarEstadoAdministrador(id: int, estado: int, currentUserId: int): AdminOperationResult
@@ -54,16 +60,8 @@ enum EstadoUsuario {
 }
 
 
-' =========================================================
-' RELACIONES Y ASOCIACIONES
-' =========================================================
-
 Rol "1" -- "0..*" Usuario : posee >
 
-
-' =========================================================
-' RELACIONES CON ENUMS
-' =========================================================
 
 EstadoUsuario "1" -- "0..*" Usuario : define estado >
 

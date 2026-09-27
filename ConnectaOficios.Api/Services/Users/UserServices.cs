@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ConnectaOficios.Api.DTOs.Common;
 using ConnectaOficios.Api.DTOs.Users;
 using ConnectaOficios.Api.Security;
 using ConnectaOficios.Domain.Data;
@@ -115,12 +116,17 @@ public class UserServices : IUserServices
         };
     }
 
-    public async Task<IEnumerable<UserResponse>> GetAll(
-        string? nombre = null,
-        string? correo = null,
-        int? rolId = null,
-        int? estado = null)
+    public async Task<PagedResult<UserResponse>> GetAll(
+    string? nombre = null,
+    string? correo = null,
+    int? rolId = null,
+    int? estado = null,
+    int page = 1,
+    int pageSize = 20)
     {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var query = _db.Usuarios
             .AsNoTracking()
             .Include(u => u.Rol)
@@ -128,33 +134,127 @@ public class UserServices : IUserServices
 
         if (!string.IsNullOrWhiteSpace(nombre))
         {
+            var nombreFiltro = nombre.Trim();
+
             query = query.Where(u =>
-                u.Nombre.Contains(nombre));
+                EF.Functions.Like(
+                    u.Nombre,
+                    $"%{nombreFiltro}%"
+                )
+            );
         }
 
         if (!string.IsNullOrWhiteSpace(correo))
         {
+            var correoFiltro = correo.Trim();
+
             query = query.Where(u =>
-                u.Correo.Contains(correo));
+                EF.Functions.Like(
+                    u.Correo,
+                    $"%{correoFiltro}%"
+                )
+            );
         }
 
         if (rolId.HasValue)
         {
             query = query.Where(u =>
-                u.RolId == rolId.Value);
+                u.RolId == rolId.Value
+            );
         }
 
         if (estado.HasValue)
         {
             query = query.Where(u =>
-                (int)u.Estado == estado.Value);
+                (int)u.Estado == estado.Value
+            );
         }
+
+        var totalItems = await query.CountAsync();
 
         var usuarios = await query
             .OrderBy(u => u.Nombre)
+            .ThenBy(u => u.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return _mapper.Map<IEnumerable<UserResponse>>(usuarios);
+        var items = _mapper
+            .Map<IEnumerable<UserResponse>>(usuarios)
+            .ToList();
+
+        return new PagedResult<UserResponse>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalItems == 0
+                ? 0
+                : (int)Math.Ceiling(
+                    totalItems / (double)pageSize
+                )
+        };
+    }
+
+    public async Task<IEnumerable<UserSearchResponse>> Search(
+    string texto,
+    int? rolId = null,
+    int limit = 10)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+        {
+            return [];
+        }
+
+        var termino = texto.Trim();
+
+        if (termino.Length < 2)
+        {
+            return [];
+        }
+
+        limit = Math.Clamp(limit, 1, 20);
+
+        var query = _db.Usuarios
+            .AsNoTracking()
+            .Include(u => u.Rol)
+            .Where(u =>
+                u.Estado == EstadoUsuario.Activo
+            )
+            .AsQueryable();
+
+        if (rolId.HasValue)
+        {
+            query = query.Where(u =>
+                u.RolId == rolId.Value
+            );
+        }
+
+        query = query.Where(u =>
+            EF.Functions.Like(
+                u.Nombre,
+                $"%{termino}%"
+            ) ||
+            EF.Functions.Like(
+                u.Correo,
+                $"%{termino}%"
+            )
+        );
+
+        return await query
+            .OrderBy(u => u.Nombre)
+            .ThenBy(u => u.Id)
+            .Take(limit)
+            .Select(u => new UserSearchResponse
+            {
+                Id = u.Id,
+                Nombre = u.Nombre,
+                Correo = u.Correo,
+                RolId = u.RolId,
+                Rol = u.Rol.Nombre
+            })
+            .ToListAsync();
     }
 
     public async Task<UserResponse?> GetById(int id)

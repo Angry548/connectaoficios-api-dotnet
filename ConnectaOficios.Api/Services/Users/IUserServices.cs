@@ -1,4 +1,5 @@
-﻿using ConnectaOficios.Api.DTOs.Users;
+﻿using ConnectaOficios.Api.DTOs.Common;
+using ConnectaOficios.Api.DTOs.Users;
 
 namespace ConnectaOficios.Api.Services.Users;
 
@@ -8,11 +9,19 @@ public interface IUserServices
 
     Task<LoginResponse?> Login(LoginRequest login);
 
-    Task<IEnumerable<UserResponse>> GetAll(
+    Task<PagedResult<UserResponse>> GetAll(
         string? nombre = null,
         string? correo = null,
         int? rolId = null,
-        int? estado = null
+        int? estado = null,
+        int page = 1,
+        int pageSize = 20
+    );
+
+    Task<IEnumerable<UserSearchResponse>> Search(
+        string texto,
+        int? rolId = null,
+        int limit = 10
     );
 
     Task<UserResponse?> GetById(int id);
@@ -23,14 +32,14 @@ public interface IUserServices
     );
 
     Task<UserUpdateResult> UpdateCurrentUser(
-    int userId,
-    UserUpdateRequest request
+        int userId,
+        UserUpdateRequest request
     );
 
     Task<PasswordChangeResult> ChangePassword(
-    int userId,
-    ChangePasswordRequest request
-);
+        int userId,
+        ChangePasswordRequest request
+    );
 
     Task<PasswordResetRequestResult> RequestPasswordReset(
         ForgotPasswordRequest request

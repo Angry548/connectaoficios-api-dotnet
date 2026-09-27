@@ -13,26 +13,54 @@ public static class AdminEndpoints
             .WithTags("Administration")
             .RequireAuthorization("Administrador");
 
-        // GET: /api/admin/users
         group.MapGet("/users", async (
             IUserServices userServices,
             string? nombre,
             string? correo,
             int? rolId,
-            int? estado) =>
+            int? estado,
+            int page = 1,
+            int pageSize = 20) =>
         {
             var usuarios = await userServices.GetAll(
                 nombre,
                 correo,
                 rolId,
-                estado
+                estado,
+                page,
+                pageSize
             );
 
             return Results.Ok(usuarios);
         })
         .WithName("GetAllUsers");
 
-        // GET: /api/admin/users/{id}
+        group.MapGet("/users/search", async (
+            IUserServices userServices,
+            string? texto,
+            int? rolId,
+            int limit = 10) =>
+        {
+            if (string.IsNullOrWhiteSpace(texto) ||
+                texto.Trim().Length < 2)
+            {
+                return Results.BadRequest(new
+                {
+                    message =
+                        "Debe proporcionar al menos 2 caracteres para realizar la búsqueda."
+                });
+            }
+
+            var usuarios = await userServices.Search(
+                texto,
+                rolId,
+                limit
+            );
+
+            return Results.Ok(usuarios);
+        })
+        .WithName("SearchUsers");
+
         group.MapGet("/users/{id:int}", async (
             int id,
             IUserServices userServices) =>
@@ -51,17 +79,18 @@ public static class AdminEndpoints
         })
         .WithName("GetUserById");
 
-        // PATCH: /api/admin/users/{id}/status
         group.MapPatch("/users/{id:int}/status", async (
             int id,
             UserStatusRequest request,
             IUserServices userServices) =>
         {
-            if (request.Estado != 1 && request.Estado != 2)
+            if (request.Estado != 1 &&
+                request.Estado != 2)
             {
                 return Results.BadRequest(new
                 {
-                    message = "El estado debe ser 1 (Activo) o 2 (Inactivo)."
+                    message =
+                        "El estado debe ser 1 (Activo) o 2 (Inactivo)."
                 });
             }
 

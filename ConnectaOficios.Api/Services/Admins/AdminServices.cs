@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using ConnectaOficios.Api.DTOs.Admins;
+using ConnectaOficios.Api.DTOs.Common;
 using ConnectaOficios.Api.DTOs.Users;
 using ConnectaOficios.Domain.Data;
 using ConnectaOficios.Domain.Entities;
@@ -21,18 +22,148 @@ public class AdminServices : IAdminServices
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<UserResponse>> GetAll()
+    public async Task<PagedResult<UserResponse>> GetAll(
+        string? nombre = null,
+        string? correo = null,
+        int? rolId = null,
+        int? estado = null,
+        int page = 1,
+        int pageSize = 20)
     {
-        var administradores = await _db.Usuarios
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query = _db.Usuarios
             .AsNoTracking()
             .Include(u => u.Rol)
             .Where(u =>
                 u.RolId == 3 ||
                 u.RolId == 4)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(nombre))
+        {
+            var nombreFiltro = nombre.Trim();
+
+            query = query.Where(u =>
+                EF.Functions.Like(
+                    u.Nombre,
+                    $"%{nombreFiltro}%"
+                )
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(correo))
+        {
+            var correoFiltro = correo.Trim();
+
+            query = query.Where(u =>
+                EF.Functions.Like(
+                    u.Correo,
+                    $"%{correoFiltro}%"
+                )
+            );
+        }
+
+        if (rolId.HasValue)
+        {
+            query = query.Where(u =>
+                u.RolId == rolId.Value
+            );
+        }
+
+        if (estado.HasValue)
+        {
+            query = query.Where(u =>
+                (int)u.Estado == estado.Value
+            );
+        }
+
+        var totalItems = await query.CountAsync();
+
+        var administradores = await query
             .OrderBy(u => u.Nombre)
+            .ThenBy(u => u.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return _mapper.Map<IEnumerable<UserResponse>>(administradores);
+        var items = _mapper
+            .Map<IEnumerable<UserResponse>>(administradores)
+            .ToList();
+
+        return new PagedResult<UserResponse>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalItems == 0
+                ? 0
+                : (int)Math.Ceiling(
+                    totalItems / (double)pageSize
+                )
+        };
+    }
+
+    public async Task<IEnumerable<UserSearchResponse>> Search(
+        string texto,
+        int? rolId = null,
+        int limit = 10)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+        {
+            return [];
+        }
+
+        var termino = texto.Trim();
+
+        if (termino.Length < 2)
+        {
+            return [];
+        }
+
+        limit = Math.Clamp(limit, 1, 20);
+
+        var query = _db.Usuarios
+            .AsNoTracking()
+            .Include(u => u.Rol)
+            .Where(u =>
+                (u.RolId == 3 || u.RolId == 4) &&
+                u.Estado == EstadoUsuario.Activo)
+            .AsQueryable();
+
+        if (rolId.HasValue)
+        {
+            query = query.Where(u =>
+                u.RolId == rolId.Value
+            );
+        }
+
+        query = query.Where(u =>
+            EF.Functions.Like(
+                u.Nombre,
+                $"%{termino}%"
+            ) ||
+            EF.Functions.Like(
+                u.Correo,
+                $"%{termino}%"
+            )
+        );
+
+        return await query
+            .OrderBy(u => u.Nombre)
+            .ThenBy(u => u.Id)
+            .Take(limit)
+            .Select(u => new UserSearchResponse
+            {
+                Id = u.Id,
+                Nombre = u.Nombre,
+                Correo = u.Correo,
+                RolId = u.RolId,
+                Rol = u.Rol.Nombre
+            })
+            .ToListAsync();
     }
 
     public async Task<UserResponse?> GetById(int id)
@@ -55,13 +186,17 @@ public class AdminServices : IAdminServices
     public async Task<UserResponse?> Create(
         AdminAccountRequest admin)
     {
-        if (admin.RolId != 3 && admin.RolId != 4)
+        if (admin.RolId != 3 &&
+            admin.RolId != 4)
         {
             return null;
         }
 
+        var normalizedEmail = admin.Correo.Trim();
+
         var emailExists = await _db.Usuarios
-            .AnyAsync(u => u.Correo == admin.Correo);
+            .AnyAsync(u =>
+                u.Correo == normalizedEmail);
 
         if (emailExists)
         {
@@ -71,7 +206,7 @@ public class AdminServices : IAdminServices
         var entity = new Usuario
         {
             Nombre = admin.Nombre.Trim(),
-            Correo = admin.Correo.Trim(),
+            Correo = normalizedEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(
                 admin.Password
             ),
@@ -92,8 +227,8 @@ public class AdminServices : IAdminServices
     }
 
     public async Task<AdminOperationResult> Update(
-    int id,
-    AdminAccountUpdateRequest admin)
+        int id,
+        AdminAccountUpdateRequest admin)
     {
         var entity = await _db.Usuarios
             .Include(u => u.Rol)
@@ -123,7 +258,8 @@ public class AdminServices : IAdminServices
 
         if (admin.Nombre != null)
         {
-            if (string.IsNullOrWhiteSpace(admin.Nombre))
+            if (string.IsNullOrWhiteSpace(
+                admin.Nombre))
             {
                 return new AdminOperationResult
                 {
@@ -137,7 +273,8 @@ public class AdminServices : IAdminServices
 
         if (admin.Correo != null)
         {
-            if (string.IsNullOrWhiteSpace(admin.Correo))
+            if (string.IsNullOrWhiteSpace(
+                admin.Correo))
             {
                 return new AdminOperationResult
                 {
@@ -146,7 +283,8 @@ public class AdminServices : IAdminServices
                 };
             }
 
-            var normalizedEmail = admin.Correo.Trim();
+            var normalizedEmail =
+                admin.Correo.Trim();
 
             var emailExists = await _db.Usuarios
                 .AnyAsync(u =>
@@ -167,29 +305,36 @@ public class AdminServices : IAdminServices
 
         if (admin.Telefono != null)
         {
-            entity.Telefono = string.IsNullOrWhiteSpace(admin.Telefono)
-                ? null
-                : admin.Telefono.Trim();
+            entity.Telefono =
+                string.IsNullOrWhiteSpace(
+                    admin.Telefono)
+                    ? null
+                    : admin.Telefono.Trim();
         }
 
-        entity.FechaActualizacion = DateTime.UtcNow;
+        entity.FechaActualizacion =
+            DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
 
         return new AdminOperationResult
         {
             Success = true,
-            Admin = _mapper.Map<UserResponse>(entity)
+            Admin = _mapper.Map<UserResponse>(
+                entity
+            )
         };
     }
 
     public async Task<AdminOperationResult> ChangeStatus(
-    int id,
-    int estado,
-    int currentUserId)
+        int id,
+        int estado,
+        int currentUserId)
     {
-        if (estado != (int)EstadoUsuario.Activo &&
-            estado != (int)EstadoUsuario.Inactivo)
+        if (estado !=
+                (int)EstadoUsuario.Activo &&
+            estado !=
+                (int)EstadoUsuario.Inactivo)
         {
             return new AdminOperationResult
             {
@@ -202,7 +347,8 @@ public class AdminServices : IAdminServices
             .Include(u => u.Rol)
             .FirstOrDefaultAsync(u =>
                 u.Id == id &&
-                (u.RolId == 3 || u.RolId == 4));
+                (u.RolId == 3 ||
+                 u.RolId == 4));
 
         if (administrador == null)
         {
@@ -213,8 +359,10 @@ public class AdminServices : IAdminServices
             };
         }
 
-        if (administrador.Id == currentUserId &&
-            estado == (int)EstadoUsuario.Inactivo)
+        if (administrador.Id ==
+                currentUserId &&
+            estado ==
+                (int)EstadoUsuario.Inactivo)
         {
             return new AdminOperationResult
             {
@@ -224,33 +372,42 @@ public class AdminServices : IAdminServices
         }
 
         if (administrador.RolId == 4 &&
-            estado == (int)EstadoUsuario.Inactivo &&
-            administrador.Estado == EstadoUsuario.Activo)
+            estado ==
+                (int)EstadoUsuario.Inactivo &&
+            administrador.Estado ==
+                EstadoUsuario.Activo)
         {
-            var activePrincipals = await _db.Usuarios
-                .CountAsync(u =>
+            var activePrincipals =
+                await _db.Usuarios.CountAsync(u =>
                     u.RolId == 4 &&
-                    u.Estado == EstadoUsuario.Activo);
+                    u.Estado ==
+                        EstadoUsuario.Activo);
 
             if (activePrincipals <= 1)
             {
                 return new AdminOperationResult
                 {
                     Success = false,
-                    Error = "LAST_ACTIVE_PRINCIPAL"
+                    Error =
+                        "LAST_ACTIVE_PRINCIPAL"
                 };
             }
         }
 
-        administrador.Estado = (EstadoUsuario)estado;
-        administrador.FechaActualizacion = DateTime.UtcNow;
+        administrador.Estado =
+            (EstadoUsuario)estado;
+
+        administrador.FechaActualizacion =
+            DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
 
         return new AdminOperationResult
         {
             Success = true,
-            Admin = _mapper.Map<UserResponse>(administrador)
+            Admin = _mapper.Map<UserResponse>(
+                administrador
+            )
         };
     }
 }
