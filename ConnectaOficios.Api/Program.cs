@@ -2,16 +2,19 @@ using ConnectaOficios.Api.Bootstrap;
 using ConnectaOficios.Api.Endpoints;
 using ConnectaOficios.Api.Mappings;
 using ConnectaOficios.Api.Security;
-using ConnectaOficios.Api.Services.Users;
 using ConnectaOficios.Api.Services.Admins;
+using ConnectaOficios.Api.Services.Email;
+using ConnectaOficios.Api.Services.Users;
 using ConnectaOficios.Domain.Data;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using System.Text;
+
 using Resend;
-using ConnectaOficios.Api.Services.Email;
+
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,106 +26,236 @@ builder.Services.AddAutoMapper(cfg =>
 });
 
 builder.Services.AddScoped<IUserServices, UserServices>();
+
 builder.Services.AddScoped<IAdminServices, AdminServices>();
+
 builder.Services.AddScoped<IJwtService, JwtService>();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    )
+builder.Services.AddDbContext<ApplicationDbContext>(
+    options =>
+    {
+        options.UseSqlServer(
+            builder.Configuration.GetConnectionString(
+                "DefaultConnection"
+            )
+        );
+    }
 );
+
+const string CorsPolicy =
+    "ConnectaOficiosCors";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        CorsPolicy,
+        policy =>
+        {
+            policy
+                .WithOrigins(
+                    "http://localhost:5173",
+                    "https://localhost:5173",
+                    "http://127.0.0.1:5173",
+                    "https://connectaoficios-portal-web.onrender.com"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    );
+});
 
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
 {
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        Description = "Ingrese el token JWT."
-    });
-
-    options.AddSecurityRequirement(document =>
-        new OpenApiSecurityRequirement
+    options.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
         {
-            [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-        });
+            Type =
+                SecuritySchemeType.Http,
+
+            Scheme =
+                "bearer",
+
+            BearerFormat =
+                "JWT",
+
+            Description =
+                "Ingrese el token JWT."
+        }
+    );
+
+    options.AddSecurityRequirement(
+        document =>
+            new OpenApiSecurityRequirement
+            {
+                [
+                    new OpenApiSecuritySchemeReference(
+                        "Bearer",
+                        document
+                    )
+                ] = []
+            }
+    );
 });
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException(
+var jwtKey =
+    builder.Configuration[
+        "Jwt:Key"
+    ];
+
+if (
+    string.IsNullOrWhiteSpace(
+        jwtKey
+    )
+)
+{
+    throw new InvalidOperationException(
         "La clave JWT no está configurada."
     );
+}
 
-var jwtIssuer = builder.Configuration["Jwt:Issuer"]
-    ?? throw new InvalidOperationException(
+var jwtIssuer =
+    builder.Configuration[
+        "Jwt:Issuer"
+    ];
+
+if (
+    string.IsNullOrWhiteSpace(
+        jwtIssuer
+    )
+)
+{
+    throw new InvalidOperationException(
         "El emisor JWT no está configurado."
     );
+}
 
-var jwtAudience = builder.Configuration["Jwt:Audience"]
-    ?? throw new InvalidOperationException(
+var jwtAudience =
+    builder.Configuration[
+        "Jwt:Audience"
+    ];
+
+if (
+    string.IsNullOrWhiteSpace(
+        jwtAudience
+    )
+)
+{
+    throw new InvalidOperationException(
         "La audiencia JWT no está configurada."
     );
+}
 
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddAuthentication(
+        JwtBearerDefaults
+            .AuthenticationScheme
+    )
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateIssuer =
+                    true,
 
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
+                ValidateAudience =
+                    true,
 
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey)
-            ),
+                ValidateLifetime =
+                    true,
 
-            ClockSkew = TimeSpan.Zero
-        };
+                ValidateIssuerSigningKey =
+                    true,
+
+                ValidIssuer =
+                    jwtIssuer,
+
+                ValidAudience =
+                    jwtAudience,
+
+                IssuerSigningKey =
+                    new SymmetricSecurityKey(
+                        Encoding.UTF8
+                            .GetBytes(
+                                jwtKey
+                            )
+                    ),
+
+                ClockSkew =
+                    TimeSpan.Zero
+            };
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("Cliente", policy =>
-        policy.RequireRole("Cliente"));
+builder.Services.AddAuthorization(
+    options =>
+    {
+        options.AddPolicy(
+            "Cliente",
+            policy =>
+                policy.RequireRole(
+                    "Cliente"
+                )
+        );
 
-    options.AddPolicy("Trabajador", policy =>
-        policy.RequireRole("Trabajador"));
+        options.AddPolicy(
+            "Trabajador",
+            policy =>
+                policy.RequireRole(
+                    "Trabajador"
+                )
+        );
 
-    options.AddPolicy("Administrador", policy =>
-        policy.RequireRole(
+        options.AddPolicy(
             "Administrador",
-            "AdministradorPrincipal"
-        ));
+            policy =>
+                policy.RequireRole(
+                    "Administrador",
+                    "AdministradorPrincipal"
+                )
+        );
 
-    options.AddPolicy("AdministradorPrincipal", policy =>
-        policy.RequireRole("AdministradorPrincipal"));
-});
+        options.AddPolicy(
+            "AdministradorPrincipal",
+            policy =>
+                policy.RequireRole(
+                    "AdministradorPrincipal"
+                )
+        );
+    }
+);
 
 builder.Services.AddOptions();
 
 builder.Services.AddHttpClient<ResendClient>();
 
-builder.Services.Configure<ResendClientOptions>(options =>
-{
-    options.ApiToken =
-        builder.Configuration["Resend:ApiKey"]
-        ?? throw new InvalidOperationException(
-            "No se ha configurado Resend:ApiKey."
-        );
-});
+builder.Services.Configure<ResendClientOptions>(
+    options =>
+    {
+        options.ApiToken =
+            builder.Configuration[
+                "Resend:ApiKey"
+            ]
+            ?? throw new InvalidOperationException(
+                "No se ha configurado Resend:ApiKey."
+            );
+    }
+);
 
-builder.Services.AddTransient<IResend, ResendClient>();
-builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddTransient<
+    IResend,
+    ResendClient
+>();
 
-var app = builder.Build();
+builder.Services.AddScoped<
+    IEmailService,
+    EmailService
+>();
+
+var app =
+    builder.Build();
 
 app.UseSwagger();
 
@@ -133,23 +266,43 @@ app.UseSwaggerUI(options =>
         "ConnectaOficios API .NET v1"
     );
 
-    options.RoutePrefix = "swagger";
+    options.RoutePrefix =
+        "swagger";
 });
 
 app.UseHttpsRedirection();
 
+app.UseCors(
+    CorsPolicy
+);
+
 app.UseAuthentication();
+
 app.UseAuthorization();
 
-app.MapGet("/health", () => Results.Ok(new
-{
-    status = "OK",
-    api = "ConnectaOficios.Api"
-}));
+app.MapGet(
+    "/health",
+    () =>
+        Results.Ok(
+            new
+            {
+                status =
+                    "OK",
+
+                api =
+                    "ConnectaOficios.Api"
+            }
+        )
+);
 
 app.MapControllers();
+
 app.AddEndpoints();
 
-await AdminBootstrapService.CreateInitialAdminAsync(app.Services, app.Configuration);
+await AdminBootstrapService
+    .CreateInitialAdminAsync(
+        app.Services,
+        app.Configuration
+    );
 
 app.Run();

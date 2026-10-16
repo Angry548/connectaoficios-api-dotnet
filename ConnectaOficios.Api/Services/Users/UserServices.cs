@@ -125,16 +125,26 @@ public class UserServices : IUserServices
     int pageSize = 20)
     {
         page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        pageSize = Math.Clamp(
+            pageSize,
+            1,
+            100
+        );
 
         var query = _db.Usuarios
             .AsNoTracking()
             .Include(u => u.Rol)
+            .Where(u =>
+                u.RolId == 1 ||
+                u.RolId == 2
+            )
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(nombre))
         {
-            var nombreFiltro = nombre.Trim();
+            var nombreFiltro =
+                nombre.Trim();
 
             query = query.Where(u =>
                 EF.Functions.Like(
@@ -146,7 +156,8 @@ public class UserServices : IUserServices
 
         if (!string.IsNullOrWhiteSpace(correo))
         {
-            var correoFiltro = correo.Trim();
+            var correoFiltro =
+                correo.Trim();
 
             query = query.Where(u =>
                 EF.Functions.Like(
@@ -166,34 +177,47 @@ public class UserServices : IUserServices
         if (estado.HasValue)
         {
             query = query.Where(u =>
-                (int)u.Estado == estado.Value
+                (int)u.Estado ==
+                estado.Value
             );
         }
 
-        var totalItems = await query.CountAsync();
+        var totalItems =
+            await query.CountAsync();
 
         var usuarios = await query
             .OrderBy(u => u.Nombre)
             .ThenBy(u => u.Id)
-            .Skip((page - 1) * pageSize)
+            .Skip(
+                (page - 1) *
+                pageSize
+            )
             .Take(pageSize)
             .ToListAsync();
 
         var items = _mapper
-            .Map<IEnumerable<UserResponse>>(usuarios)
+            .Map<IEnumerable<UserResponse>>(
+                usuarios
+            )
             .ToList();
 
         return new PagedResult<UserResponse>
         {
             Items = items,
+
             Page = page,
+
             PageSize = pageSize,
+
             TotalItems = totalItems,
-            TotalPages = totalItems == 0
-                ? 0
-                : (int)Math.Ceiling(
-                    totalItems / (double)pageSize
-                )
+
+            TotalPages =
+                totalItems == 0
+                    ? 0
+                    : (int)Math.Ceiling(
+                        totalItems /
+                        (double)pageSize
+                    )
         };
     }
 
@@ -207,27 +231,36 @@ public class UserServices : IUserServices
             return [];
         }
 
-        var termino = texto.Trim();
+        var termino =
+            texto.Trim();
 
         if (termino.Length < 2)
         {
             return [];
         }
 
-        limit = Math.Clamp(limit, 1, 20);
+        limit = Math.Clamp(
+            limit,
+            1,
+            20
+        );
 
         var query = _db.Usuarios
             .AsNoTracking()
             .Include(u => u.Rol)
             .Where(u =>
-                u.Estado == EstadoUsuario.Activo
+                (u.RolId == 1 ||
+                 u.RolId == 2) &&
+                u.Estado ==
+                    EstadoUsuario.Activo
             )
             .AsQueryable();
 
         if (rolId.HasValue)
         {
             query = query.Where(u =>
-                u.RolId == rolId.Value
+                u.RolId ==
+                rolId.Value
             );
         }
 
@@ -246,14 +279,24 @@ public class UserServices : IUserServices
             .OrderBy(u => u.Nombre)
             .ThenBy(u => u.Id)
             .Take(limit)
-            .Select(u => new UserSearchResponse
-            {
-                Id = u.Id,
-                Nombre = u.Nombre,
-                Correo = u.Correo,
-                RolId = u.RolId,
-                Rol = u.Rol.Nombre
-            })
+            .Select(u =>
+                new UserSearchResponse
+                {
+                    Id = u.Id,
+
+                    Nombre =
+                        u.Nombre,
+
+                    Correo =
+                        u.Correo,
+
+                    RolId =
+                        u.RolId,
+
+                    Rol =
+                        u.Rol.Nombre
+                }
+            )
             .ToListAsync();
     }
 

@@ -79,17 +79,24 @@ public class AdminServices : IAdminServices
             );
         }
 
-        var totalItems = await query.CountAsync();
+        var totalItems =
+            await query.CountAsync();
 
-        var administradores = await query
-            .OrderBy(u => u.Nombre)
-            .ThenBy(u => u.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var administradores =
+            await query
+                .OrderBy(u => u.Nombre)
+                .ThenBy(u => u.Id)
+                .Skip(
+                    (page - 1) *
+                    pageSize
+                )
+                .Take(pageSize)
+                .ToListAsync();
 
         var items = _mapper
-            .Map<IEnumerable<UserResponse>>(administradores)
+            .Map<IEnumerable<UserResponse>>(
+                administradores
+            )
             .ToList();
 
         return new PagedResult<UserResponse>
@@ -98,11 +105,13 @@ public class AdminServices : IAdminServices
             Page = page,
             PageSize = pageSize,
             TotalItems = totalItems,
-            TotalPages = totalItems == 0
-                ? 0
-                : (int)Math.Ceiling(
-                    totalItems / (double)pageSize
-                )
+            TotalPages =
+                totalItems == 0
+                    ? 0
+                    : (int)Math.Ceiling(
+                        totalItems /
+                        (double)pageSize
+                    )
         };
     }
 
@@ -123,20 +132,28 @@ public class AdminServices : IAdminServices
             return [];
         }
 
-        limit = Math.Clamp(limit, 1, 20);
+        limit = Math.Clamp(
+            limit,
+            1,
+            20
+        );
 
         var query = _db.Usuarios
             .AsNoTracking()
             .Include(u => u.Rol)
             .Where(u =>
-                (u.RolId == 3 || u.RolId == 4) &&
-                u.Estado == EstadoUsuario.Activo)
+                (u.RolId == 3 ||
+                 u.RolId == 4) &&
+                u.Estado ==
+                    EstadoUsuario.Activo
+            )
             .AsQueryable();
 
         if (rolId.HasValue)
         {
             query = query.Where(u =>
-                u.RolId == rolId.Value
+                u.RolId ==
+                    rolId.Value
             );
         }
 
@@ -155,86 +172,135 @@ public class AdminServices : IAdminServices
             .OrderBy(u => u.Nombre)
             .ThenBy(u => u.Id)
             .Take(limit)
-            .Select(u => new UserSearchResponse
-            {
-                Id = u.Id,
-                Nombre = u.Nombre,
-                Correo = u.Correo,
-                RolId = u.RolId,
-                Rol = u.Rol.Nombre
-            })
+            .Select(u =>
+                new UserSearchResponse
+                {
+                    Id = u.Id,
+                    Nombre = u.Nombre,
+                    Correo = u.Correo,
+                    RolId = u.RolId,
+                    Rol = u.Rol.Nombre
+                }
+            )
             .ToListAsync();
     }
 
-    public async Task<UserResponse?> GetById(int id)
+    public async Task<UserResponse?> GetById(
+        int id)
     {
-        var administrador = await _db.Usuarios
-            .AsNoTracking()
-            .Include(u => u.Rol)
-            .FirstOrDefaultAsync(u =>
-                u.Id == id &&
-                (u.RolId == 3 || u.RolId == 4));
+        var administrador =
+            await _db.Usuarios
+                .AsNoTracking()
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u =>
+                    u.Id == id &&
+                    (
+                        u.RolId == 3 ||
+                        u.RolId == 4
+                    )
+                );
 
         if (administrador == null)
         {
             return null;
         }
 
-        return _mapper.Map<UserResponse>(administrador);
+        return _mapper.Map<UserResponse>(
+            administrador
+        );
     }
 
     public async Task<UserResponse?> Create(
         AdminAccountRequest admin)
     {
-        if (admin.RolId != 3 &&
-            admin.RolId != 4)
+        if (
+            admin.RolId != 3 &&
+            admin.RolId != 4
+        )
         {
             return null;
         }
 
-        var normalizedEmail = admin.Correo.Trim();
+        var nombre =
+            admin.Nombre?.Trim();
 
-        var emailExists = await _db.Usuarios
-            .AnyAsync(u =>
-                u.Correo == normalizedEmail);
+        var correo =
+            admin.Correo?.Trim();
+
+        if (
+            string.IsNullOrWhiteSpace(nombre) ||
+            string.IsNullOrWhiteSpace(correo) ||
+            string.IsNullOrWhiteSpace(
+                admin.Password
+            )
+        )
+        {
+            return null;
+        }
+
+        var emailExists =
+            await _db.Usuarios
+                .AnyAsync(u =>
+                    u.Correo == correo
+                );
 
         if (emailExists)
         {
             return null;
         }
 
-        var entity = new Usuario
-        {
-            Nombre = admin.Nombre.Trim(),
-            Correo = normalizedEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(
-                admin.Password
-            ),
-            Telefono = admin.Telefono?.Trim(),
-            RolId = admin.RolId,
-            Estado = EstadoUsuario.Activo,
-            FechaCreacion = DateTime.UtcNow
-        };
+        var entity =
+            new Usuario
+            {
+                Nombre = nombre,
+                Correo = correo,
+                PasswordHash =
+                    BCrypt.Net.BCrypt
+                        .HashPassword(
+                            admin.Password
+                        ),
+                Telefono =
+                    string.IsNullOrWhiteSpace(
+                        admin.Telefono
+                    )
+                        ? null
+                        : admin.Telefono.Trim(),
+                RolId = admin.RolId,
+                Estado =
+                    EstadoUsuario.Activo,
+                FechaCreacion =
+                    DateTime.UtcNow
+            };
 
-        await _db.Usuarios.AddAsync(entity);
+        await _db.Usuarios.AddAsync(
+            entity
+        );
+
         await _db.SaveChangesAsync();
 
         await _db.Entry(entity)
             .Reference(u => u.Rol)
             .LoadAsync();
 
-        return _mapper.Map<UserResponse>(entity);
+        return _mapper.Map<UserResponse>(
+            entity
+        );
     }
 
     public async Task<AdminOperationResult> Update(
         int id,
         AdminAccountUpdateRequest admin)
     {
-        var entity = await _db.Usuarios
-            .Include(u => u.Rol)
-            .FirstOrDefaultAsync(u =>
-                u.Id == id &&
-                (u.RolId == 3 || u.RolId == 4));
+        var entity =
+            await _db.Usuarios
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u =>
+                    u.Id == id &&
+                    (
+                        u.RolId == 3 ||
+                        u.RolId == 4
+                    )
+                );
 
         if (entity == null)
         {
@@ -245,9 +311,11 @@ public class AdminServices : IAdminServices
             };
         }
 
-        if (admin.Nombre == null &&
+        if (
+            admin.Nombre == null &&
             admin.Correo == null &&
-            admin.Telefono == null)
+            admin.Telefono == null
+        )
         {
             return new AdminOperationResult
             {
@@ -258,8 +326,11 @@ public class AdminServices : IAdminServices
 
         if (admin.Nombre != null)
         {
-            if (string.IsNullOrWhiteSpace(
-                admin.Nombre))
+            if (
+                string.IsNullOrWhiteSpace(
+                    admin.Nombre
+                )
+            )
             {
                 return new AdminOperationResult
                 {
@@ -268,13 +339,17 @@ public class AdminServices : IAdminServices
                 };
             }
 
-            entity.Nombre = admin.Nombre.Trim();
+            entity.Nombre =
+                admin.Nombre.Trim();
         }
 
         if (admin.Correo != null)
         {
-            if (string.IsNullOrWhiteSpace(
-                admin.Correo))
+            if (
+                string.IsNullOrWhiteSpace(
+                    admin.Correo
+                )
+            )
             {
                 return new AdminOperationResult
                 {
@@ -286,10 +361,13 @@ public class AdminServices : IAdminServices
             var normalizedEmail =
                 admin.Correo.Trim();
 
-            var emailExists = await _db.Usuarios
-                .AnyAsync(u =>
-                    u.Correo == normalizedEmail &&
-                    u.Id != id);
+            var emailExists =
+                await _db.Usuarios
+                    .AnyAsync(u =>
+                        u.Correo ==
+                            normalizedEmail &&
+                        u.Id != id
+                    );
 
             if (emailExists)
             {
@@ -300,14 +378,16 @@ public class AdminServices : IAdminServices
                 };
             }
 
-            entity.Correo = normalizedEmail;
+            entity.Correo =
+                normalizedEmail;
         }
 
         if (admin.Telefono != null)
         {
             entity.Telefono =
                 string.IsNullOrWhiteSpace(
-                    admin.Telefono)
+                    admin.Telefono
+                )
                     ? null
                     : admin.Telefono.Trim();
         }
@@ -320,9 +400,10 @@ public class AdminServices : IAdminServices
         return new AdminOperationResult
         {
             Success = true,
-            Admin = _mapper.Map<UserResponse>(
-                entity
-            )
+            Admin =
+                _mapper.Map<UserResponse>(
+                    entity
+                )
         };
     }
 
@@ -331,10 +412,12 @@ public class AdminServices : IAdminServices
         int estado,
         int currentUserId)
     {
-        if (estado !=
+        if (
+            estado !=
                 (int)EstadoUsuario.Activo &&
             estado !=
-                (int)EstadoUsuario.Inactivo)
+                (int)EstadoUsuario.Inactivo
+        )
         {
             return new AdminOperationResult
             {
@@ -343,12 +426,16 @@ public class AdminServices : IAdminServices
             };
         }
 
-        var administrador = await _db.Usuarios
-            .Include(u => u.Rol)
-            .FirstOrDefaultAsync(u =>
-                u.Id == id &&
-                (u.RolId == 3 ||
-                 u.RolId == 4));
+        var administrador =
+            await _db.Usuarios
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u =>
+                    u.Id == id &&
+                    (
+                        u.RolId == 3 ||
+                        u.RolId == 4
+                    )
+                );
 
         if (administrador == null)
         {
@@ -359,29 +446,36 @@ public class AdminServices : IAdminServices
             };
         }
 
-        if (administrador.Id ==
+        if (
+            administrador.Id ==
                 currentUserId &&
             estado ==
-                (int)EstadoUsuario.Inactivo)
+                (int)EstadoUsuario.Inactivo
+        )
         {
             return new AdminOperationResult
             {
                 Success = false,
-                Error = "CANNOT_DISABLE_SELF"
+                Error =
+                    "CANNOT_DISABLE_SELF"
             };
         }
 
-        if (administrador.RolId == 4 &&
+        if (
+            administrador.RolId == 4 &&
             estado ==
                 (int)EstadoUsuario.Inactivo &&
             administrador.Estado ==
-                EstadoUsuario.Activo)
+                EstadoUsuario.Activo
+        )
         {
             var activePrincipals =
-                await _db.Usuarios.CountAsync(u =>
-                    u.RolId == 4 &&
-                    u.Estado ==
-                        EstadoUsuario.Activo);
+                await _db.Usuarios
+                    .CountAsync(u =>
+                        u.RolId == 4 &&
+                        u.Estado ==
+                            EstadoUsuario.Activo
+                    );
 
             if (activePrincipals <= 1)
             {
@@ -405,9 +499,84 @@ public class AdminServices : IAdminServices
         return new AdminOperationResult
         {
             Success = true,
-            Admin = _mapper.Map<UserResponse>(
-                administrador
-            )
+            Admin =
+                _mapper.Map<UserResponse>(
+                    administrador
+                )
+        };
+    }
+
+    public async Task<AdminOperationResult> Delete(
+        int id,
+        int currentUserId)
+    {
+        var administrador =
+            await _db.Usuarios
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u =>
+                    u.Id == id &&
+                    (
+                        u.RolId == 3 ||
+                        u.RolId == 4
+                    )
+                );
+
+        if (administrador == null)
+        {
+            return new AdminOperationResult
+            {
+                Success = false,
+                Error = "NOT_FOUND"
+            };
+        }
+
+        if (
+            administrador.Id ==
+            currentUserId
+        )
+        {
+            return new AdminOperationResult
+            {
+                Success = false,
+                Error =
+                    "CANNOT_DELETE_SELF"
+            };
+        }
+
+        if (
+            administrador.RolId == 4 &&
+            administrador.Estado ==
+                EstadoUsuario.Activo
+        )
+        {
+            var activePrincipals =
+                await _db.Usuarios
+                    .CountAsync(u =>
+                        u.RolId == 4 &&
+                        u.Estado ==
+                            EstadoUsuario.Activo
+                    );
+
+            if (activePrincipals <= 1)
+            {
+                return new AdminOperationResult
+                {
+                    Success = false,
+                    Error =
+                        "LAST_ACTIVE_PRINCIPAL"
+                };
+            }
+        }
+
+        _db.Usuarios.Remove(
+            administrador
+        );
+
+        await _db.SaveChangesAsync();
+
+        return new AdminOperationResult
+        {
+            Success = true
         };
     }
 }

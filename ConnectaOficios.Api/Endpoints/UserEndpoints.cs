@@ -12,7 +12,6 @@ public static class UserEndpoints
             .MapGroup("/api/users")
             .WithTags("Users");
 
-        // POST: /api/users/register
         group.MapPost("/register", async (
             UserRequest user,
             IUserServices userServices) =>
@@ -25,7 +24,6 @@ public static class UserEndpoints
                 });
             }
 
-            // Validar rol permitido para el registro público
             if (user.RolId != 1 && user.RolId != 2)
             {
                 return Results.BadRequest(new
@@ -51,7 +49,6 @@ public static class UserEndpoints
         })
         .WithName("RegisterUser");
 
-        // POST: /api/users/login
         group.MapPost("/login", async (
             LoginRequest login,
             IUserServices userServices) =>
@@ -67,10 +64,43 @@ public static class UserEndpoints
         })
         .WithName("LoginUser");
 
-        group.MapPut("/me/password", async (
-    ChangePasswordRequest request,
-    ClaimsPrincipal currentUser,
+        group.MapGet("/{id:int}", async (
+    int id,
     IUserServices userServices) =>
+        {
+            if (id <= 0)
+            {
+                return Results.BadRequest(new
+                {
+                    message = "El identificador del usuario no es válido."
+                });
+            }
+
+            var result = await userServices.GetById(id);
+
+            if (result == null)
+            {
+                return Results.NotFound(new
+                {
+                    message = "Usuario no encontrado."
+                });
+            }
+
+            return Results.Ok(result);
+        })
+.RequireAuthorization(policy =>
+    policy.RequireRole(
+        "Cliente",
+        "Trabajador",
+        "Administrador",
+        "AdministradorPrincipal"
+    ))
+.WithName("GetPublicUserById");
+
+        group.MapPut("/me/password", async (
+            ChangePasswordRequest request,
+            ClaimsPrincipal currentUser,
+            IUserServices userServices) =>
         {
             var userIdValue = currentUser.FindFirstValue(
                 ClaimTypes.NameIdentifier
@@ -120,12 +150,12 @@ public static class UserEndpoints
                 message = "Contraseña actualizada correctamente."
             });
         })
-.RequireAuthorization()
-.WithName("ChangePassword");
+        .RequireAuthorization()
+        .WithName("ChangePassword");
 
         group.MapPost("/password/forgot", async (
-    ForgotPasswordRequest request,
-    IUserServices userServices) =>
+            ForgotPasswordRequest request,
+            IUserServices userServices) =>
         {
             await userServices.RequestPasswordReset(request);
 
@@ -135,11 +165,11 @@ public static class UserEndpoints
                     "Si existe una cuenta asociada al correo indicado, se enviarán instrucciones para restablecer la contraseña."
             });
         })
-.WithName("ForgotPassword");
+        .WithName("ForgotPassword");
 
         group.MapPost("/password/reset", async (
-    ResetPasswordRequest request,
-    IUserServices userServices) =>
+            ResetPasswordRequest request,
+            IUserServices userServices) =>
         {
             var result = await userServices.ResetPassword(
                 request
@@ -187,14 +217,16 @@ public static class UserEndpoints
                     "Contraseña restablecida correctamente."
             });
         })
-.WithName("ResetPassword");
+        .WithName("ResetPassword");
 
         group.MapPut("/me", async (
-    UserUpdateRequest request,
-    IUserServices userServices,
-    ClaimsPrincipal user) =>
+            UserUpdateRequest request,
+            IUserServices userServices,
+            ClaimsPrincipal user) =>
         {
-            var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdClaim = user.FindFirstValue(
+                ClaimTypes.NameIdentifier
+            );
 
             if (!int.TryParse(userIdClaim, out var userId))
             {
@@ -219,13 +251,15 @@ public static class UserEndpoints
                     "USER_INACTIVE" =>
                         Results.BadRequest(new
                         {
-                            message = "La cuenta del usuario se encuentra inactiva."
+                            message =
+                                "La cuenta del usuario se encuentra inactiva."
                         }),
 
                     "NO_FIELDS" =>
                         Results.BadRequest(new
                         {
-                            message = "Debe proporcionar al menos un campo para actualizar."
+                            message =
+                                "Debe proporcionar al menos un campo para actualizar."
                         }),
 
                     "INVALID_NAME" =>
@@ -243,13 +277,15 @@ public static class UserEndpoints
                     "EMAIL_EXISTS" =>
                         Results.Conflict(new
                         {
-                            message = "El correo indicado ya está registrado."
+                            message =
+                                "El correo indicado ya está registrado."
                         }),
 
                     _ =>
                         Results.BadRequest(new
                         {
-                            message = "No fue posible actualizar los datos del usuario."
+                            message =
+                                "No fue posible actualizar los datos del usuario."
                         })
                 };
             }
@@ -260,8 +296,10 @@ public static class UserEndpoints
                 user = result.User
             });
         })
-.RequireAuthorization(policy =>
-    policy.RequireRole("Cliente", "Trabajador"));
+        .RequireAuthorization(policy =>
+            policy.RequireRole(
+                "Cliente",
+                "Trabajador"
+            ));
     }
-
 }

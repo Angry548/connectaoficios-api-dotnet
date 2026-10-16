@@ -10,8 +10,12 @@ public static class AdminAccountEndpoints
         this IEndpointRouteBuilder routes)
     {
         var group = routes
-            .MapGroup("/api/admin/accounts")
-            .WithTags("Admin Accounts")
+            .MapGroup(
+                "/api/admin/accounts"
+            )
+            .WithTags(
+                "Admin Accounts"
+            )
             .RequireAuthorization(
                 "AdministradorPrincipal"
             );
@@ -25,6 +29,36 @@ public static class AdminAccountEndpoints
             int page = 1,
             int pageSize = 20) =>
         {
+            if (
+                rolId.HasValue &&
+                rolId.Value != 3 &&
+                rolId.Value != 4
+            )
+            {
+                return Results.BadRequest(
+                    new
+                    {
+                        message =
+                            "El rol debe corresponder a Administrador o Administrador Principal."
+                    }
+                );
+            }
+
+            if (
+                estado.HasValue &&
+                estado.Value != 1 &&
+                estado.Value != 2
+            )
+            {
+                return Results.BadRequest(
+                    new
+                    {
+                        message =
+                            "El estado debe ser 1 (Activo) o 2 (Inactivo)."
+                    }
+                );
+            }
+
             var administradores =
                 await adminServices.GetAll(
                     nombre,
@@ -35,9 +69,13 @@ public static class AdminAccountEndpoints
                     pageSize
                 );
 
-            return Results.Ok(administradores);
+            return Results.Ok(
+                administradores
+            );
         })
-        .WithName("GetAdminAccounts");
+        .WithName(
+            "GetAdminAccounts"
+        );
 
         group.MapGet("/search", async (
             IAdminServices adminServices,
@@ -45,14 +83,35 @@ public static class AdminAccountEndpoints
             int? rolId,
             int limit = 10) =>
         {
-            if (string.IsNullOrWhiteSpace(texto) ||
-                texto.Trim().Length < 2)
+            if (
+                string.IsNullOrWhiteSpace(
+                    texto
+                ) ||
+                texto.Trim().Length < 2
+            )
             {
-                return Results.BadRequest(new
-                {
-                    message =
-                        "Debe proporcionar al menos 2 caracteres para realizar la búsqueda."
-                });
+                return Results.BadRequest(
+                    new
+                    {
+                        message =
+                            "Debe proporcionar al menos 2 caracteres para realizar la búsqueda."
+                    }
+                );
+            }
+
+            if (
+                rolId.HasValue &&
+                rolId.Value != 3 &&
+                rolId.Value != 4
+            )
+            {
+                return Results.BadRequest(
+                    new
+                    {
+                        message =
+                            "El rol debe corresponder a Administrador o Administrador Principal."
+                    }
+                );
             }
 
             var administradores =
@@ -62,54 +121,84 @@ public static class AdminAccountEndpoints
                     limit
                 );
 
-            return Results.Ok(administradores);
+            return Results.Ok(
+                administradores
+            );
         })
-        .WithName("SearchAdminAccounts");
+        .WithName(
+            "SearchAdminAccounts"
+        );
 
         group.MapGet("/{id:int}", async (
             int id,
             IAdminServices adminServices) =>
         {
+            if (id <= 0)
+            {
+                return Results.BadRequest(
+                    new
+                    {
+                        message =
+                            "El identificador de la cuenta administrativa no es válido."
+                    }
+                );
+            }
+
             var administrador =
-                await adminServices.GetById(id);
+                await adminServices
+                    .GetById(id);
 
             if (administrador == null)
             {
-                return Results.NotFound(new
-                {
-                    message =
-                        "Cuenta administrativa no encontrada."
-                });
+                return Results.NotFound(
+                    new
+                    {
+                        message =
+                            "Cuenta administrativa no encontrada."
+                    }
+                );
             }
 
-            return Results.Ok(administrador);
+            return Results.Ok(
+                administrador
+            );
         })
-        .WithName("GetAdminAccountById");
+        .WithName(
+            "GetAdminAccountById"
+        );
 
         group.MapPost("/", async (
             AdminAccountRequest request,
             IAdminServices adminServices) =>
         {
-            if (request.RolId != 3 &&
-                request.RolId != 4)
+            if (
+                request.RolId != 3 &&
+                request.RolId != 4
+            )
             {
-                return Results.BadRequest(new
-                {
-                    message =
-                        "Solo se pueden crear cuentas con rol Administrador o AdministradorPrincipal."
-                });
+                return Results.BadRequest(
+                    new
+                    {
+                        message =
+                            "Solo se pueden crear cuentas con rol Administrador o AdministradorPrincipal."
+                    }
+                );
             }
 
             var administrador =
-                await adminServices.Create(request);
+                await adminServices.Create(
+                    request
+                );
 
             if (administrador == null)
             {
-                return Results.Conflict(new
-                {
-                    message =
-                        "No fue posible crear la cuenta administrativa. Verifique que el correo no esté registrado."
-                });
+                return Results.Conflict(
+                    new
+                    {
+                        message =
+                            "No fue posible crear la cuenta administrativa. Verifique los datos y que el correo no esté registrado."
+                    }
+                );
             }
 
             return Results.Created(
@@ -117,13 +206,26 @@ public static class AdminAccountEndpoints
                 administrador
             );
         })
-        .WithName("CreateAdminAccount");
+        .WithName(
+            "CreateAdminAccount"
+        );
 
         group.MapPut("/{id:int}", async (
             int id,
             AdminAccountUpdateRequest request,
             IAdminServices adminServices) =>
         {
+            if (id <= 0)
+            {
+                return Results.BadRequest(
+                    new
+                    {
+                        message =
+                            "El identificador de la cuenta administrativa no es válido."
+                    }
+                );
+            }
+
             var result =
                 await adminServices.Update(
                     id,
@@ -135,131 +237,283 @@ public static class AdminAccountEndpoints
                 return result.Error switch
                 {
                     "NOT_FOUND" =>
-                        Results.NotFound(new
-                        {
-                            message =
-                                "Cuenta administrativa no encontrada."
-                        }),
+                        Results.NotFound(
+                            new
+                            {
+                                message =
+                                    "Cuenta administrativa no encontrada."
+                            }
+                        ),
 
                     "EMAIL_EXISTS" =>
-                        Results.Conflict(new
-                        {
-                            message =
-                                "El correo electrónico ya está registrado."
-                        }),
+                        Results.Conflict(
+                            new
+                            {
+                                message =
+                                    "El correo electrónico ya está registrado."
+                            }
+                        ),
 
                     "INVALID_NAME" =>
-                        Results.BadRequest(new
-                        {
-                            message =
-                                "El nombre no puede estar vacío."
-                        }),
+                        Results.BadRequest(
+                            new
+                            {
+                                message =
+                                    "El nombre no puede estar vacío."
+                            }
+                        ),
 
                     "INVALID_EMAIL" =>
-                        Results.BadRequest(new
-                        {
-                            message =
-                                "El correo no puede estar vacío."
-                        }),
+                        Results.BadRequest(
+                            new
+                            {
+                                message =
+                                    "El correo no puede estar vacío."
+                            }
+                        ),
 
                     "NO_FIELDS" =>
-                        Results.BadRequest(new
-                        {
-                            message =
-                                "Debe proporcionar al menos un campo para actualizar."
-                        }),
+                        Results.BadRequest(
+                            new
+                            {
+                                message =
+                                    "Debe proporcionar al menos un campo para actualizar."
+                            }
+                        ),
 
                     _ =>
-                        Results.BadRequest(new
-                        {
-                            message =
-                                "No fue posible actualizar la cuenta administrativa."
-                        })
+                        Results.BadRequest(
+                            new
+                            {
+                                message =
+                                    "No fue posible actualizar la cuenta administrativa."
+                            }
+                        )
                 };
             }
 
-            return Results.Ok(result.Admin);
+            return Results.Ok(
+                result.Admin
+            );
         })
-        .WithName("UpdateAdminAccount");
+        .WithName(
+            "UpdateAdminAccount"
+        );
 
-        group.MapPatch("/{id:int}/status", async (
-            int id,
-            AdminStatusRequest request,
-            ClaimsPrincipal currentUser,
-            IAdminServices adminServices) =>
-        {
-            if (request.Estado != 1 &&
-                request.Estado != 2)
+        group.MapPatch(
+            "/{id:int}/status",
+            async (
+                int id,
+                AdminStatusRequest request,
+                ClaimsPrincipal currentUser,
+                IAdminServices adminServices) =>
             {
-                return Results.BadRequest(new
+                if (id <= 0)
                 {
-                    message =
-                        "El estado debe ser 1 (Activo) o 2 (Inactivo)."
-                });
-            }
+                    return Results.BadRequest(
+                        new
+                        {
+                            message =
+                                "El identificador de la cuenta administrativa no es válido."
+                        }
+                    );
+                }
 
-            var userIdValue =
-                currentUser.FindFirstValue(
-                    ClaimTypes.NameIdentifier
-                );
-
-            if (!int.TryParse(
-                userIdValue,
-                out var currentUserId))
-            {
-                return Results.Unauthorized();
-            }
-
-            var result =
-                await adminServices.ChangeStatus(
-                    id,
-                    request.Estado,
-                    currentUserId
-                );
-
-            if (!result.Success)
-            {
-                return result.Error switch
+                if (
+                    request.Estado != 1 &&
+                    request.Estado != 2
+                )
                 {
-                    "NOT_FOUND" =>
-                        Results.NotFound(new
-                        {
-                            message =
-                                "Cuenta administrativa no encontrada."
-                        }),
-
-                    "CANNOT_DISABLE_SELF" =>
-                        Results.Conflict(new
-                        {
-                            message =
-                                "No puede desactivar su propia cuenta administrativa."
-                        }),
-
-                    "LAST_ACTIVE_PRINCIPAL" =>
-                        Results.Conflict(new
-                        {
-                            message =
-                                "No se puede desactivar el último Administrador Principal activo."
-                        }),
-
-                    "INVALID_STATUS" =>
-                        Results.BadRequest(new
+                    return Results.BadRequest(
+                        new
                         {
                             message =
                                 "El estado debe ser 1 (Activo) o 2 (Inactivo)."
-                        }),
+                        }
+                    );
+                }
 
-                    _ =>
-                        Results.BadRequest(new
+                var userIdValue =
+                    currentUser
+                        .FindFirstValue(
+                            ClaimTypes
+                                .NameIdentifier
+                        );
+
+                if (
+                    !int.TryParse(
+                        userIdValue,
+                        out var currentUserId
+                    )
+                )
+                {
+                    return Results
+                        .Unauthorized();
+                }
+
+                var result =
+                    await adminServices
+                        .ChangeStatus(
+                            id,
+                            request.Estado,
+                            currentUserId
+                        );
+
+                if (!result.Success)
+                {
+                    return result.Error switch
+                    {
+                        "NOT_FOUND" =>
+                            Results.NotFound(
+                                new
+                                {
+                                    message =
+                                        "Cuenta administrativa no encontrada."
+                                }
+                            ),
+
+                        "CANNOT_DISABLE_SELF" =>
+                            Results.Conflict(
+                                new
+                                {
+                                    message =
+                                        "No puede desactivar su propia cuenta administrativa."
+                                }
+                            ),
+
+                        "LAST_ACTIVE_PRINCIPAL" =>
+                            Results.Conflict(
+                                new
+                                {
+                                    message =
+                                        "Debe existir al menos un Administrador Principal activo."
+                                }
+                            ),
+
+                        "INVALID_STATUS" =>
+                            Results.BadRequest(
+                                new
+                                {
+                                    message =
+                                        "El estado debe ser 1 (Activo) o 2 (Inactivo)."
+                                }
+                            ),
+
+                        _ =>
+                            Results.BadRequest(
+                                new
+                                {
+                                    message =
+                                        "No fue posible cambiar el estado de la cuenta administrativa."
+                                }
+                            )
+                    };
+                }
+
+                return Results.Ok(
+                    result.Admin
+                );
+            }
+        )
+        .WithName(
+            "ChangeAdminAccountStatus"
+        );
+
+        group.MapDelete(
+            "/{id:int}",
+            async (
+                int id,
+                ClaimsPrincipal currentUser,
+                IAdminServices adminServices) =>
+            {
+                if (id <= 0)
+                {
+                    return Results.BadRequest(
+                        new
                         {
                             message =
-                                "No fue posible cambiar el estado de la cuenta administrativa."
-                        })
-                };
-            }
+                                "El identificador de la cuenta administrativa no es válido."
+                        }
+                    );
+                }
 
-            return Results.Ok(result.Admin);
-        })
-        .WithName("ChangeAdminAccountStatus");
+                var userIdValue =
+                    currentUser
+                        .FindFirstValue(
+                            ClaimTypes
+                                .NameIdentifier
+                        );
+
+                if (
+                    !int.TryParse(
+                        userIdValue,
+                        out var currentUserId
+                    )
+                )
+                {
+                    return Results
+                        .Unauthorized();
+                }
+
+                var result =
+                    await adminServices.Delete(
+                        id,
+                        currentUserId
+                    );
+
+                if (!result.Success)
+                {
+                    return result.Error switch
+                    {
+                        "NOT_FOUND" =>
+                            Results.NotFound(
+                                new
+                                {
+                                    message =
+                                        "Cuenta administrativa no encontrada."
+                                }
+                            ),
+
+                        "CANNOT_DELETE_SELF" =>
+                            Results.Conflict(
+                                new
+                                {
+                                    message =
+                                        "No puede eliminar su propia cuenta administrativa."
+                                }
+                            ),
+
+                        "LAST_ACTIVE_PRINCIPAL" =>
+                            Results.Conflict(
+                                new
+                                {
+                                    message =
+                                        "No se puede eliminar el último Administrador Principal activo. Debe existir al menos uno."
+                                }
+                            ),
+
+                        _ =>
+                            Results.BadRequest(
+                                new
+                                {
+                                    message =
+                                        "No fue posible eliminar la cuenta administrativa."
+                                }
+                            )
+                    };
+                }
+
+                return Results.Ok(
+                    new
+                    {
+                        message =
+                            "Cuenta administrativa eliminada correctamente."
+                    }
+                );
+            }
+        )
+        .WithName(
+            "DeleteAdminAccount"
+        );
     }
 }

@@ -37,4 +37,9 @@ public interface IAdminServices
         int estado,
         int currentUserId
     );
+
+    Task<AdminOperationResult> Delete(
+        int id,
+        int currentUserId
+    );
 }
