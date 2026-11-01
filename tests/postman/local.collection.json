@@ -1,0 +1,901 @@
+{
+  "info": {
+    "name": "ConnectaOficios .NET local",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "invalidToken",
+      "value": "invalid.token.signature"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!new RegExp('^http://(localhost|127[.]0[.]0[.]1|connectaoficios-api)(:[0-9]+)?$').test(pm.environment.get('baseUrl'))) { pm.execution.skipRequest(); throw new Error('Solo API local'); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login Cliente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\":\"cliente.test@connectaoficios.local\",\"password\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login Cliente\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const j = pm.response.json(); pm.collectionVariables.set('clienteToken', j.token); pm.collectionVariables.set('clienteId', j.usuario.id); pm.test('Rol exacto', () => pm.expect(j.usuario.rol).eq('Cliente')); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login Trabajador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\":\"trabajador.test@connectaoficios.local\",\"password\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login Trabajador\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const j = pm.response.json(); pm.collectionVariables.set('trabajadorToken', j.token); pm.collectionVariables.set('trabajadorId', j.usuario.id); pm.test('Rol exacto', () => pm.expect(j.usuario.rol).eq('Trabajador')); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\":\"admin.test@connectaoficios.local\",\"password\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login Administrador\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const j = pm.response.json(); pm.collectionVariables.set('adminToken', j.token); pm.collectionVariables.set('adminId', j.usuario.id); pm.test('Rol exacto', () => pm.expect(j.usuario.rol).eq('Administrador')); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login AdministradorPrincipal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\":\"adminprincipal.test@connectaoficios.local\",\"password\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login AdministradorPrincipal\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const j = pm.response.json(); pm.collectionVariables.set('adminprincipalToken', j.token); pm.collectionVariables.set('adminprincipalId', j.usuario.id); pm.test('Rol exacto', () => pm.expect(j.usuario.rol).eq('AdministradorPrincipal')); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sin token",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Sin token\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Token invalido",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{invalidToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Token invalido\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cliente no administra",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clienteToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Cliente no administra\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trabajador no administra",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{trabajadorToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Trabajador no administra\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin no es Principal",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/accounts/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Admin no es Principal\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cuenta autenticada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clienteToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Cuenta autenticada\", () => pm.response.to.have.status(200));",
+              "pm.test('Identidad para avatar', () => { const j = pm.response.json(); ['id','nombre','correo','rol'].forEach(k => pm.expect(j).has.property(k)); pm.expect(j).not.has.property('fotoUrl'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registro rol 1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"Newman local\",\"correo\":\"newman-1-{{$guid}}@connectaoficios.local\",\"password\":\"{{password}}\",\"rolId\":1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Registro rol 1\", () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registro rol 2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"Newman local\",\"correo\":\"newman-2-{{$guid}}@connectaoficios.local\",\"password\":\"{{password}}\",\"rolId\":2}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Registro rol 2\", () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registro invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"\",\"correo\":\"invalid\",\"password\":\"x\",\"rolId\":1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Registro invalido\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registro no eleva privilegios",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"Local\",\"correo\":\"local@connectaoficios.local\",\"password\":\"{{password}}\",\"rolId\":4}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Registro no eleva privilegios\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Correo duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"Local\",\"correo\":\"cliente.test@connectaoficios.local\",\"password\":\"{{password}}\",\"rolId\":1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Correo duplicado\", () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Password incorrecta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\":\"cliente.test@connectaoficios.local\",\"password\":\"Incorrecta!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Password incorrecta\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paginacion /api/admin/users?page=1&pageSize=10",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users?page=1&pageSize=10"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Paginacion /api/admin/users?page=1&pageSize=10\", () => pm.response.to.have.status(200));",
+              "pm.test('Contrato paginado', () => { const j = pm.response.json(); pm.expect(j.pageSize).eq(10); pm.expect(j.items.length).at.most(10); ['page','totalItems','totalPages'].forEach(k => pm.expect(j).has.property(k)); j.items.forEach(u => ['id','nombre','correo','rol'].forEach(k => pm.expect(u).has.property(k))); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paginacion /api/admin/users?page=2&pageSize=10",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users?page=2&pageSize=10"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Paginacion /api/admin/users?page=2&pageSize=10\", () => pm.response.to.have.status(200));",
+              "pm.test('Contrato paginado', () => { const j = pm.response.json(); pm.expect(j.pageSize).eq(10); pm.expect(j.items.length).at.most(10); ['page','totalItems','totalPages'].forEach(k => pm.expect(j).has.property(k)); j.items.forEach(u => ['id','nombre','correo','rol'].forEach(k => pm.expect(u).has.property(k))); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paginacion /api/admin/users?page=1&pageSize=10&nombre=Cliente&correo=connectaoficios.local&rolId=1&estado=1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users?page=1&pageSize=10&nombre=Cliente&correo=connectaoficios.local&rolId=1&estado=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Paginacion /api/admin/users?page=1&pageSize=10&nombre=Cliente&correo=connectaoficios.local&rolId=1&estado=1\", () => pm.response.to.have.status(200));",
+              "pm.test('Contrato paginado', () => { const j = pm.response.json(); pm.expect(j.pageSize).eq(10); pm.expect(j.items.length).at.most(10); ['page','totalItems','totalPages'].forEach(k => pm.expect(j).has.property(k)); j.items.forEach(u => ['id','nombre','correo','rol'].forEach(k => pm.expect(u).has.property(k))); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paginacion /api/admin/accounts/?page=1&pageSize=10",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/accounts/?page=1&pageSize=10"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Paginacion /api/admin/accounts/?page=1&pageSize=10\", () => pm.response.to.have.status(200));",
+              "pm.test('Contrato paginado', () => { const j = pm.response.json(); pm.expect(j.pageSize).eq(10); pm.expect(j.items.length).at.most(10); ['page','totalItems','totalPages'].forEach(k => pm.expect(j).has.property(k)); j.items.forEach(u => ['id','nombre','correo','rol'].forEach(k => pm.expect(u).has.property(k))); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Busqueda usuarios",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users/search?texto=local&limit=10"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Busqueda usuarios\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Busqueda admins",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/accounts/search?texto=local&limit=10"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Busqueda admins\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Detalle usuario",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/users/{{clienteId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Detalle usuario\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Actualizar cuenta",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clienteToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/me",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"Cliente local\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Actualizar cuenta\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Crear administrador desechable",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/accounts/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"Newman Admin\",\"correo\":\"newman-admin-{{$guid}}@connectaoficios.local\",\"password\":\"{{password}}\",\"rolId\":3}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Crear administrador desechable\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) pm.collectionVariables.set('disposableAdminId',pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Actualizar administrador",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/accounts/{{disposableAdminId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"Newman actualizado\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Actualizar administrador\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Desactivar administrador",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/accounts/{{disposableAdminId}}/status",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"estado\":2}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Desactivar administrador\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Eliminar administrador desechable",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminprincipalToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/accounts/{{disposableAdminId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Eliminar administrador desechable\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

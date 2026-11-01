@@ -488,3 +488,9 @@ ConnectaOficios.Api/web.config.production.backup
 # Artefactos locales de despliegue
 ConnectaOficios.Api/ConnectaOficios-Publish.zip
 ConnectaOficios.Api/app_offline.htm
+
+# Local testing evidence and private environments
+reports/
+.env.*
+!.env.example
+*.postman_environment.private.json

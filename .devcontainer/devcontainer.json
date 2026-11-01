@@ -1,0 +1,11 @@
+{
+  "name": "ConnectaOficios .NET local",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/powershell:1": {}
+  },
+  "forwardPorts": [8080],
+  "portsAttributes": { "8080": { "label": "API local", "visibility": "private" } }
+}

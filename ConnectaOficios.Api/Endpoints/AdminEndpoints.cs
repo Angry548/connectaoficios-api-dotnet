@@ -1,4 +1,4 @@
-﻿using ConnectaOficios.Api.DTOs.Users;
+using ConnectaOficios.Api.DTOs.Users;
 using ConnectaOficios.Api.Services.Users;
 
 namespace ConnectaOficios.Api.Endpoints;
@@ -10,7 +10,7 @@ public static class AdminEndpoints
     {
         var group = routes
             .MapGroup("/api/admin")
-            .WithTags("Administration")
+            .AddEndpointFilter<RequestValidationFilter>().WithTags("Administration")
             .RequireAuthorization("Administrador");
 
         group.MapGet("/users", async (
@@ -20,7 +20,7 @@ public static class AdminEndpoints
             int? rolId,
             int? estado,
             int page = 1,
-            int pageSize = 20) =>
+            int pageSize = 10) =>
         {
             if (rolId.HasValue &&
                 rolId.Value != 1 &&

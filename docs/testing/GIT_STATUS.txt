@@ -1,0 +1,35 @@
+﻿ M .gitignore
+ M ConnectaOficios.Api/Endpoints/AdminAccountEndpoints.cs
+ M ConnectaOficios.Api/Endpoints/AdminEndpoints.cs
+ M ConnectaOficios.Api/Endpoints/UserEndpoints.cs
+ M ConnectaOficios.Api/Program.cs
+ M ConnectaOficios.Api/Services/Admins/AdminServices.cs
+ M ConnectaOficios.Api/Services/Admins/IAdminServices.cs
+ M ConnectaOficios.Api/Services/Users/IUserServices.cs
+ M ConnectaOficios.Api/Services/Users/UserServices.cs
+ M ConnectaOficios.Api/appsettings.Production.json
+ M ConnectaOficios.Api/appsettings.json
+ M ConnectaOficios.Tests/ConnectaOficios.Tests.csproj
+ M ConnectaOficios.Tests/README.md
+?? .config/
+?? .devcontainer/
+?? .dockerignore
+?? .env.example
+?? .gitattributes
+?? ConnectaOficios.Api/Bootstrap/LocalTestSeed.cs
+?? ConnectaOficios.Api/Endpoints/RequestValidationFilter.cs
+?? ConnectaOficios.Api/Services/Email/LocalEmailService.cs
+?? ConnectaOficios.Tests/Integration/
+?? ConnectaOficios.Tests/Services/AdministradorServiceTests.cs
+?? ConnectaOficios.Tests/Services/CuentaServiceTests.cs
+?? ConnectaOficios.Tests/Services/ServiceFixture.cs
+?? ConnectaOficios.Tests/Services/UsuarioServiceTests.cs
+?? Dockerfile
+?? Dockerfile.tests
+?? README.md
+?? compose.yaml
+?? docker/
+?? docs/
+?? generate-test-report.ps1
+?? scripts/
+?? tests/

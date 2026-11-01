@@ -1,4 +1,4 @@
-﻿using ConnectaOficios.Api.DTOs.Users;
+using ConnectaOficios.Api.DTOs.Users;
 using ConnectaOficios.Api.Services.Users;
 using System.Security.Claims;
 
@@ -10,7 +10,15 @@ public static class UserEndpoints
     {
         var group = routes
             .MapGroup("/api/users")
-            .WithTags("Users");
+            .AddEndpointFilter<RequestValidationFilter>().WithTags("Users");
+
+        group.MapGet("/me", async (ClaimsPrincipal principal, IUserServices service) =>
+        {
+            var id = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(id, out var userId)) return Results.Unauthorized();
+            var user = await service.GetById(userId);
+            return user is null ? Results.NotFound() : Results.Ok(user);
+        }).RequireAuthorization().WithName("GetCurrentUser");
 
         group.MapPost("/register", async (
             UserRequest user,

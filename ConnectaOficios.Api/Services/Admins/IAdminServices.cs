@@ -1,4 +1,4 @@
-﻿using ConnectaOficios.Api.DTOs.Admins;
+using ConnectaOficios.Api.DTOs.Admins;
 using ConnectaOficios.Api.DTOs.Common;
 using ConnectaOficios.Api.DTOs.Users;
 
@@ -12,7 +12,7 @@ public interface IAdminServices
         int? rolId = null,
         int? estado = null,
         int page = 1,
-        int pageSize = 20
+        int pageSize = 10
     );
 
     Task<IEnumerable<UserSearchResponse>> Search(

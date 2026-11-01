@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+WORKDIR /src
+COPY ConnectaOficios.Domain/ConnectaOficios.Domain.csproj ConnectaOficios.Domain/
+COPY ConnectaOficios.Api/ConnectaOficios.Api.csproj ConnectaOficios.Api/
+COPY ConnectaOficios.Tests/ConnectaOficios.Tests.csproj ConnectaOficios.Tests/
+RUN dotnet restore ConnectaOficios.Tests/ConnectaOficios.Tests.csproj \
+    && dotnet tool install PowerShell --version '7.4.*' --tool-path /tools
+COPY .config/ .config/
+RUN dotnet tool restore
+COPY ConnectaOficios.Domain/ ConnectaOficios.Domain/
+COPY ConnectaOficios.Api/ ConnectaOficios.Api/
+COPY ConnectaOficios.Tests/ ConnectaOficios.Tests/
+COPY scripts/test-report.ps1 scripts/test-report.ps1
+COPY generate-test-report.ps1 ./
+# Never use developer/production appsettings or user-secrets inside the test image.
+COPY docker/appsettings.json ConnectaOficios.Api/appsettings.json
+ENTRYPOINT ["/tools/pwsh", "-NoProfile", "-File", "/src/scripts/test-report.ps1"]

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ConnectaOficios.Api.DTOs.Admins;
 using ConnectaOficios.Api.DTOs.Common;
 using ConnectaOficios.Api.DTOs.Users;
@@ -28,7 +28,7 @@ public class AdminServices : IAdminServices
         int? rolId = null,
         int? estado = null,
         int page = 1,
-        int pageSize = 20)
+        int pageSize = 10)
     {
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -412,6 +412,7 @@ public class AdminServices : IAdminServices
         int estado,
         int currentUserId)
     {
+        await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         if (
             estado !=
                 (int)EstadoUsuario.Activo &&
@@ -495,6 +496,7 @@ public class AdminServices : IAdminServices
             DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return new AdminOperationResult
         {
@@ -510,6 +512,7 @@ public class AdminServices : IAdminServices
         int id,
         int currentUserId)
     {
+        await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         var administrador =
             await _db.Usuarios
                 .Include(u => u.Rol)
@@ -573,6 +576,7 @@ public class AdminServices : IAdminServices
         );
 
         await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return new AdminOperationResult
         {

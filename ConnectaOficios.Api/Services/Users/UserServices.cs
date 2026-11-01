@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ConnectaOficios.Api.DTOs.Common;
 using ConnectaOficios.Api.DTOs.Users;
 using ConnectaOficios.Api.Security;
@@ -38,6 +38,10 @@ public class UserServices : IUserServices
         {
             return null;
         }
+
+        if (!System.ComponentModel.DataAnnotations.Validator.TryValidateObject(user,
+            new System.ComponentModel.DataAnnotations.ValidationContext(user),
+            new List<System.ComponentModel.DataAnnotations.ValidationResult>(), true)) return null;
 
         var normalizedEmail = user.Correo.Trim();
 
@@ -122,7 +126,7 @@ public class UserServices : IUserServices
     int? rolId = null,
     int? estado = null,
     int page = 1,
-    int pageSize = 20)
+    int pageSize = 10)
     {
         page = Math.Max(page, 1);
 

@@ -155,6 +155,18 @@ builder.Services
     )
     .AddJwtBearer(options =>
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var id = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var role = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                if (!int.TryParse(id, out var userId) || !await db.Usuarios.AsNoTracking().AnyAsync(u =>
+                    u.Id == userId && u.Estado == ConnectaOficios.Domain.Enums.EstadoUsuario.Activo && u.Rol.Nombre == role))
+                    context.Fail("La cuenta ya no tiene acceso.");
+            }
+        };
         options.TokenValidationParameters =
             new TokenValidationParameters
             {
@@ -254,9 +266,17 @@ builder.Services.AddScoped<
     EmailService
 >();
 
+if (builder.Configuration.GetValue<bool>("LocalTesting:EmailEnabled"))
+{
+    if (!builder.Environment.IsEnvironment("Docker")) throw new InvalidOperationException("Correo local solo en Docker.");
+    builder.Services.AddScoped<IEmailService, LocalEmailService>();
+}
+
 var app =
     builder.Build();
 
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
+{
 app.UseSwagger();
 
 app.UseSwaggerUI(options =>
@@ -269,6 +289,7 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix =
         "swagger";
 });
+}
 
 app.UseHttpsRedirection();
 
@@ -299,6 +320,8 @@ app.MapControllers();
 
 app.AddEndpoints();
 
+await LocalTestSeed.RunAsync(app.Services, app.Configuration, app.Environment);
+
 await AdminBootstrapService
     .CreateInitialAdminAsync(
         app.Services,
@@ -306,3 +329,5 @@ await AdminBootstrapService
     );
 
 app.Run();
+
+public partial class Program { }

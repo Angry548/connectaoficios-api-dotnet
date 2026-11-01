@@ -1,4 +1,4 @@
-﻿using ConnectaOficios.Api.DTOs.Common;
+using ConnectaOficios.Api.DTOs.Common;
 using ConnectaOficios.Api.DTOs.Users;
 
 namespace ConnectaOficios.Api.Services.Users;
@@ -15,7 +15,7 @@ public interface IUserServices
         int? rolId = null,
         int? estado = null,
         int page = 1,
-        int pageSize = 20
+        int pageSize = 10
     );
 
     Task<IEnumerable<UserSearchResponse>> Search(

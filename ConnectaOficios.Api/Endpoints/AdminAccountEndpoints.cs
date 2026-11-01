@@ -1,4 +1,4 @@
-﻿using ConnectaOficios.Api.DTOs.Admins;
+using ConnectaOficios.Api.DTOs.Admins;
 using ConnectaOficios.Api.Services.Admins;
 using System.Security.Claims;
 
@@ -13,7 +13,7 @@ public static class AdminAccountEndpoints
             .MapGroup(
                 "/api/admin/accounts"
             )
-            .WithTags(
+            .AddEndpointFilter<RequestValidationFilter>().WithTags(
                 "Admin Accounts"
             )
             .RequireAuthorization(
@@ -27,7 +27,7 @@ public static class AdminAccountEndpoints
             int? rolId,
             int? estado,
             int page = 1,
-            int pageSize = 20) =>
+            int pageSize = 10) =>
         {
             if (
                 rolId.HasValue &&

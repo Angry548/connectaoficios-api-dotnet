@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "api": "newman run postman/local.collection.json -e postman/local.environment.json --reporters cli,json,junit,htmlextra --reporter-json-export ../reports/newman/results.json --reporter-junit-export ../reports/newman/results.xml --reporter-htmlextra-export ../reports/newman/index.html --reporter-htmlextra-skipSensitiveData"
+  },
+  "devDependencies": {
+    "newman": "6.2.1",
+    "newman-reporter-htmlextra": "1.23.1"
+  }
+}

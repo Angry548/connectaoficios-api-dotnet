@@ -1,0 +1,16 @@
+{
+  "name": "SOLO ENTORNO LOCAL",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080",
+      "enabled": true
+    },
+    {
+      "key": "password",
+      "value": "LocalOnly-Connecta-2026!",
+      "enabled": true,
+      "type": "secret"
+    }
+  ]
+}
