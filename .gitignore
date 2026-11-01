@@ -494,3 +494,8 @@ reports/
 .env.*
 !.env.example
 *.postman_environment.private.json
+
+# Importaciones locales: datos y credenciales privadas
+/docker/import/**
+!/docker/import/README.md
+!/docker/import/import-template.sql

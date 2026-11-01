@@ -170,3 +170,9 @@ Líder: integrar las ramas en una fase posterior, ejecutar suite completa, gener
 HTML de ejecución y coverage; después Newman, ZAP, k6 Load y k6 Stress por separado.
 Registrar versiones, fecha, configuración local sin secretos y resultados reales.
 No presentar herramientas preparadas como pruebas ejecutadas.
+
+## Importar datos existentes a Docker
+
+Importacion DATA ONLY sobre el esquema de EF Core, preservando IDs y hashes.
+Consultar [procedimiento seguro, conflictos y validacion](docker/import/README.md).
+La preparacion no importa ni borra datos; no eliminar el volumen Docker.
