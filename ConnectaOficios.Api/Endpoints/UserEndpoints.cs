@@ -307,7 +307,9 @@ public static class UserEndpoints
         .RequireAuthorization(policy =>
             policy.RequireRole(
                 "Cliente",
-                "Trabajador"
+                "Trabajador",
+                "Administrador",
+                "AdministradorPrincipal"
             ));
     }
 }
