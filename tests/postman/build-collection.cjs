@@ -44,5 +44,13 @@ add('Eliminar administrador desechable','DELETE','/api/admin/accounts/{{disposab
 const collection = {info:{name:'ConnectaOficios .NET local',schema:'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'},
   variable:[{key:'invalidToken',value:'invalid.token.signature'}],
   event:[{listen:'prerequest',script:{type:'text/javascript',exec:["if (!new RegExp('^http://(localhost|127[.]0[.]0[.]1|connectaoficios-api)(:[0-9]+)?$').test(pm.environment.get('baseUrl'))) { pm.execution.skipRequest(); throw new Error('Solo API local'); }"]}}],item};
+// Add Angel's cases without changing any of the original requests or assertions.
+require('./extend-angel.cjs')(collection);
 fs.writeFileSync(path.join(__dirname,'local.collection.json'),JSON.stringify(collection,null,2)+'\n');
-fs.writeFileSync(path.join(__dirname,'local.environment.json'),JSON.stringify({name:'SOLO ENTORNO LOCAL',values:[{key:'baseUrl',value:'http://127.0.0.1:8080',enabled:true},{key:'password',value:'LocalOnly-Connecta-2026!',enabled:true,type:'secret'}]},null,2)+'\n');
+const values = [
+  {key:'baseUrl',value:'http://127.0.0.1:8080',enabled:true},
+  {key:'baseUrlDotNet',value:'http://127.0.0.1:8080',enabled:true},
+  {key:'baseUrlJava',value:'http://127.0.0.1:8081',enabled:true},
+  {key:'password',value:'',enabled:true,type:'secret'}
+];
+fs.writeFileSync(path.join(__dirname,'local.environment.json'),JSON.stringify({name:'ConnectaOficios - testing local (.NET SQL Express / Java H2 MySQL mode)',values},null,2)+'\n');

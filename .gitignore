@@ -494,6 +494,7 @@ reports/
 .env.*
 !.env.example
 *.postman_environment.private.json
+tests/postman/local.secrets.json
 
 # Importaciones locales: datos y credenciales privadas
 /docker/import/**

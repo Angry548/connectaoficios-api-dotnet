@@ -1,5 +1,5 @@
 {
-  "name": "SOLO ENTORNO LOCAL",
+  "name": "ConnectaOficios - testing local (.NET SQL Express / Java H2 MySQL mode)",
   "values": [
     {
       "key": "baseUrl",
@@ -7,8 +7,18 @@
       "enabled": true
     },
     {
+      "key": "baseUrlDotNet",
+      "value": "http://127.0.0.1:8080",
+      "enabled": true
+    },
+    {
+      "key": "baseUrlJava",
+      "value": "http://127.0.0.1:8081",
+      "enabled": true
+    },
+    {
       "key": "password",
-      "value": "LocalOnly-Connecta-2026!",
+      "value": "",
       "enabled": true,
       "type": "secret"
     }
